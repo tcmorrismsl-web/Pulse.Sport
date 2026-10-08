@@ -281,7 +281,7 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
         <li><b>Fresh scores</b>: a score jolts the number, more for a go-ahead or tying score, then fades over about five minutes.</li>
       </ul>
       <h4>Where it starts</h4>
-      <p>Every game opens at its <b>hype score</b>: rankings, rivalry, and how close the line is. Over the first third of the game that anchor hands off to what is actually happening on the field.</p>
+      <p>Every game opens at its <b>hype score</b>: rankings, rivalry, and how close the line is. Over the first third of the game that anchor hands off to what is actually happening on the field. Preseason games are tagged and get no hype at all.</p>
       <h4>The zones</h4>
       <ul>
         <li><span class="z" style="background:var(--quiet)"></span><b>0–40</b> blue: quiet</li>
@@ -463,6 +463,7 @@ function parseEvent(ev, L){
     odds: parseOdds(comp, home, away, L),
     note, conf: !!comp.conferenceCompetition,
     postseason: ev.season && ev.season.type === 3,
+    preseason: ev.season && ev.season.type === 1,
     venue: comp.venue && comp.venue.fullName || "",
     broadcast: (comp.broadcasts && comp.broadcasts[0] && comp.broadcasts[0].names || []).join(", "),
     link: link ? link.href : "https://www.espn.com/" + L.path.split("/")[1] + "/game/_/gameId/" + ev.id,
@@ -534,6 +535,8 @@ function pruneHistory(){
 
 /* ---------- Hype (pregame anchor) ---------- */
 function hypeScore(g, L){
+  // Preseason games carry no stakes: no hype at all.
+  if (g.preseason) return {value: 0, parts: [["Preseason: no hype", 0]]};
   const parts = [];
   let h = 36;
   const rH = g.home.rank, rA = g.away.rank;
@@ -706,6 +709,7 @@ function rate(g){
   g.parts = {closeness, lateness, paceF, paceRatio, core, comeback, swing, leadChg, changes: changes.length, upset, upsetWhy, otB, crunch, stakes, mo:mo.v, jo:jo.v, w, live, hist};
 
   const tags = [];
+  if (g.preseason) tags.push(["Preseason", ""]);
   if (jo.v > 1 && jo.mins < 5) tags.push([jo.j.kind === "tie" ? "Game tied!" : jo.j.kind === "ahead" ? "Go-ahead score" : "Just scored", jo.j.kind === "score" ? "hot" : "red"]);
   tags.push(...mo.tags);
   if (ot) tags.push(["Overtime", "red"]);
@@ -721,6 +725,7 @@ function rate(g){
 }
 function hypeTags(g){
   const t = [];
+  if (g.preseason) return [["Preseason", ""]];
   if (g.home.rank && g.away.rank) t.push(["Top 25 matchup", "hot"]);
   if (isRivalry(g.lg, g.home.abbr, g.away.abbr)) t.push(["Rivalry", "hot"]);
   if (g.postseason) t.push(["Postseason", "red"]);
@@ -1267,7 +1272,7 @@ function sampleGames(){
       linescores: (t.lines || []).map(v => ({value: v})),
     });
     const ev = {
-      id: "s" + id, date: o.date || iso(-1), season: {type: o.post ? 3 : 2},
+      id: "s" + id, date: o.date || iso(-1), season: {type: o.post ? 3 : o.pre ? 1 : 2},
       competitions: [{
         competitors: [team(o.home, "home"), team(o.away, "away")],
         situation: o.sit || (o.outs != null ? {outs: o.outs} : undefined),
@@ -1305,7 +1310,7 @@ function sampleGames(){
       away: T("ALA","Alabama",0,[],6,"3-1"), home: T("UGA","Georgia",0,[],3,"4-0"), line:"UGA -3"}),
     mk("nfl", 8, "pre", {date: iso(49), detail:"Sun 1:00 PM",
       away: T("PIT","Steelers",0,[],null,"2-1"), home: T("BAL","Ravens",0,[],null,"2-1"), line:"BAL -4"}),
-    mk("nhl", 9, "pre", {date: iso(8), detail:"7:00 PM",
+    mk("nhl", 9, "pre", {date: iso(8), detail:"7:00 PM", pre:true,
       away: T("TOR","Maple Leafs",0,[]), home: T("MTL","Canadiens",0,[])}),
     mk("nfl", 10, "post", {period:5, detail:"Final/OT", winner:"away",
       away: T("DET","Lions",33,[7,3,10,7,6]), home: T("GB","Packers",27,[0,14,3,10,0]), line:"GB -3"}),
