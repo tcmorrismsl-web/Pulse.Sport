@@ -79,6 +79,9 @@ section.block{margin-top:30px}
 .legend{margin-left:auto;display:flex;gap:12px;flex-wrap:wrap;font-family:var(--label);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .legend i{display:inline-block;width:10px;height:3px;border-radius:2px;margin-right:5px;vertical-align:middle}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:10px}
+.day-h{grid-column:1/-1;display:flex;align-items:baseline;gap:10px;margin:14px 0 2px;font-family:var(--label);font-weight:700;font-size:16px;letter-spacing:.08em;text-transform:uppercase;color:var(--text)}
+.day-h:first-child{margin-top:0}
+.day-h .count{font-weight:500;letter-spacing:.02em;text-transform:none}
 .empty{color:var(--muted);font-size:14px;padding:18px;border:1px dashed var(--line);border-radius:8px}
 
 /* Game card */
@@ -235,6 +238,11 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
       <div class="tip" id="liveTip" hidden></div>
     </div>
     <div class="grid" id="liveGrid"></div>
+  </section>
+
+  <section class="block" id="todaySec" hidden>
+    <div class="sec-head"><h2 class="sec-title">Today</h2><span class="count" id="todayCount"></span></div>
+    <div class="grid" id="todayGrid"></div>
   </section>
 
   <section class="block" id="upSec" hidden>
@@ -927,23 +935,41 @@ function render(){
   const up = vis.filter(g => g.state === "pre").sort((a, b) => (new Date(a.date) - new Date(b.date)) || (b.score - a.score));
   const fin = vis.filter(g => g.state === "post").sort((a, b) => b.score - a.score);
 
-  // Upcoming: only the next ~36 hours, by date and start time, then league (chip order), then hype.
-  const soon = Date.now() + 36 * 3600e3;
-  const upSoon = up.filter(g => new Date(g.date) <= soon);
+  // Pregame: today's games get their own section; later days are grouped by day.
+  // Within a day: hype (highest first), then league in chip order.
   const lgOrder = Object.fromEntries(LEAGUES.map((l, i) => [l.id, i]));
-  const t = g => { const d = new Date(g.date).getTime(); return isNaN(d) ? Infinity : d; };
-  const upList = (upSoon.length ? upSoon : up.slice(0, 24)).sort((a, b) => (t(a) - t(b)) || (lgOrder[a.lg] - lgOrder[b.lg]) || (b.score - a.score));
+  const dayKey = g => { const d = new Date(g.date); return isNaN(d) ? "9999" : d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+  const now = new Date(), todayKey = dayKey({date: now});
+  const week = Date.now() + 7 * 24 * 3600e3;
+  const byDay = (a, b) => dayKey(a).localeCompare(dayKey(b)) || (b.score - a.score) || (lgOrder[a.lg] - lgOrder[b.lg]);
+  const todayList = up.filter(g => dayKey(g) <= todayKey).sort(byDay);
+  const upList = up.filter(g => dayKey(g) > todayKey && new Date(g.date) <= week).sort(byDay);
 
   $("#liveSec").hidden = false;
   $("#liveGrid").innerHTML = live.length ? live.map(card).join("") :
-    `<div class="empty">${selected.size ? "No live games in your leagues right now." : "Pick a league above to see games."}${fin.length || upList.length ? " Finished and upcoming games are below." : ""}</div>`;
+    `<div class="empty">${selected.size ? "No live games in your leagues right now." : "Pick a league above to see games."}${fin.length || upList.length || todayList.length ? " Finished and upcoming games are below." : ""}</div>`;
   $("#liveCount").textContent = live.length ? live.length + " live" : "";
   liveList = live;
   drawLive();
 
+  $("#todaySec").hidden = !todayList.length;
+  $("#todayGrid").innerHTML = todayList.map(card).join("");
+  $("#todayCount").textContent = todayList.length ? todayList.length + " to go · by hype, then league" : "";
+
   $("#upSec").hidden = !upList.length;
-  $("#upGrid").innerHTML = upList.map(card).join("");
-  $("#upCount").textContent = upList.length ? "by start time, league, then hype" : "";
+  let lastDay = "", html = "";
+  for (const g of upList){
+    const k = dayKey(g);
+    if (k !== lastDay){
+      lastDay = k;
+      const n = upList.filter(x => dayKey(x) === k).length;
+      const d = new Date(g.date);
+      html += `<h3 class="day-h">${esc(d.toLocaleDateString([], {weekday:"long", month:"short", day:"numeric"}))}<span class="count">${n} game${n > 1 ? "s" : ""}</span></h3>`;
+    }
+    html += card(g);
+  }
+  $("#upGrid").innerHTML = html;
+  $("#upCount").textContent = upList.length ? "by day, hype, then league" : "";
 
   $("#finSec").hidden = !fin.length;
   $("#finGrid").innerHTML = fin.map(card).join("");
