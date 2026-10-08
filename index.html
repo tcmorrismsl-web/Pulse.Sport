@@ -79,9 +79,23 @@ section.block{margin-top:30px}
 .legend{margin-left:auto;display:flex;gap:12px;flex-wrap:wrap;font-family:var(--label);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .legend i{display:inline-block;width:10px;height:3px;border-radius:2px;margin-right:5px;vertical-align:middle}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:10px}
-.day-h{grid-column:1/-1;display:flex;align-items:baseline;gap:10px;margin:14px 0 2px;font-family:var(--label);font-weight:700;font-size:16px;letter-spacing:.08em;text-transform:uppercase;color:var(--text)}
-.day-h:first-child{margin-top:0}
+/* Collapsible sections */
+.tog{background:none;border:0;padding:0;margin:0;font:inherit;color:inherit;letter-spacing:inherit;text-transform:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:0;text-align:left}
+.tog:hover{color:#fff}
+.chev{display:inline-block;flex:none;width:9px;height:9px;border-right:2.5px solid var(--muted);border-bottom:2.5px solid var(--muted);transform:rotate(45deg) translate(-2px,-2px);margin-right:12px;transition:transform .15s}
+.tog[aria-expanded="false"] .chev{transform:rotate(-45deg)}
+.tog:hover .chev{border-color:var(--text)}
+.days{display:grid;gap:4px}
+.day{border-top:1px solid var(--line);padding-top:10px}
+.day:first-child{border-top:0;padding-top:0}
+.day .grid{margin:8px 0 10px}
+.day-h{margin:0;font-family:var(--label);font-weight:700;font-size:16px;letter-spacing:.08em;text-transform:uppercase;color:var(--text)}
+.day-h .tog{display:flex;align-items:baseline;gap:10px;width:100%;flex-wrap:wrap;padding:4px 0}
+.day-h .chev{width:7px;height:7px;border-width:2px;margin-right:2px;align-self:center}
 .day-h .count{font-weight:500;letter-spacing:.02em;text-transform:none}
+.day-h .peek{font-family:var(--body);font-weight:400;font-size:13px;letter-spacing:0;text-transform:none;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
+.more{grid-column:1/-1;justify-self:start;background:none;border:1px solid var(--line);border-radius:6px;padding:7px 14px;color:var(--muted);font-family:var(--label);font-weight:600;font-size:13px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+.more:hover{color:var(--text);border-color:var(--faint)}
 .empty{color:var(--muted);font-size:14px;padding:18px;border:1px dashed var(--line);border-radius:8px}
 
 /* Game card */
@@ -241,17 +255,17 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
   </section>
 
   <section class="block" id="todaySec" hidden>
-    <div class="sec-head"><h2 class="sec-title">Today</h2><span class="count" id="todayCount"></span></div>
+    <div class="sec-head"><h2 class="sec-title"><button class="tog" type="button" data-tog="today" aria-expanded="true"><span class="chev" aria-hidden="true"></span>Today</button></h2><span class="count" id="todayCount"></span></div>
     <div class="grid" id="todayGrid"></div>
   </section>
 
   <section class="block" id="upSec" hidden>
-    <div class="sec-head"><h2 class="sec-title">Coming up</h2><span class="count" id="upCount"></span></div>
-    <div class="grid" id="upGrid"></div>
+    <div class="sec-head"><h2 class="sec-title"><button class="tog" type="button" data-tog="up" aria-expanded="true"><span class="chev" aria-hidden="true"></span>Coming up</button></h2><span class="count" id="upCount"></span></div>
+    <div class="days" id="upGrid"></div>
   </section>
 
   <section class="block" id="finSec" hidden>
-    <div class="sec-head"><h2 class="sec-title">Final</h2><span class="count" id="finCount"></span></div>
+    <div class="sec-head"><h2 class="sec-title"><button class="tog" type="button" data-tog="fin" aria-expanded="true"><span class="chev" aria-hidden="true"></span>Final</button></h2><span class="count" id="finCount"></span></div>
     <div class="grid" id="finGrid"></div>
   </section>
 </main>
@@ -356,6 +370,15 @@ const deltaMap = new Map();                       // gameId -> change since last
 let games = [];                                    // parsed + rated
 let leagueState = {};                             // id -> {ok, n, live}
 let usingSample = false;
+let openState = store.get("pulse.open", {});       // section/day key -> open?
+const showAll = new Set();                        // lists expanded past the first few cards
+const CAP = 6;
+const isOpen = (key, def) => key in openState ? openState[key] : def;
+{ // Forget open/closed choices for days that have passed.
+  const d = new Date(), today = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  for (const k in openState) if (k.startsWith("day:") && k.slice(4) < today) delete openState[k];
+  store.set("pulse.open", openState);
+}
 let timer = null, busy = false;
 
 /* ---------- Helpers ---------- */
@@ -957,27 +980,24 @@ function render(){
   liveList = live;
   drawLive();
 
-  $("#todaySec").hidden = !todayList.length;
-  $("#todayGrid").innerHTML = todayList.map(card).join("");
+  setSection("today", todayList, "#todaySec", "#todayGrid", true);
   $("#todayCount").textContent = todayList.length ? todayList.length + " to go · by hype, then league" : "";
 
   $("#upSec").hidden = !upList.length;
-  let lastDay = "", html = "";
-  for (const g of upList){
-    const k = dayKey(g);
-    if (k !== lastDay){
-      lastDay = k;
-      const n = upList.filter(x => dayKey(x) === k).length;
-      const d = new Date(g.date);
-      html += `<h3 class="day-h">${esc(d.toLocaleDateString([], {weekday:"long", month:"short", day:"numeric"}))}<span class="count">${n} game${n > 1 ? "s" : ""}</span></h3>`;
-    }
-    html += card(g);
-  }
-  $("#upGrid").innerHTML = html;
-  $("#upCount").textContent = upList.length ? "by day, hype, then league" : "";
+  const upOpen = isOpen("up", true);
+  $('[data-tog="up"]').setAttribute("aria-expanded", upOpen);
+  const days = [];
+  for (const g of upList){ const k = dayKey(g); if (!days.length || days[days.length - 1].k !== k) days.push({k, list: []}); days[days.length - 1].list.push(g); }
+  $("#upGrid").hidden = !upOpen;
+  $("#upGrid").innerHTML = upOpen ? days.map(({k, list}, i) => {
+    const key = "day:" + k, open = isOpen(key, i === 0), top = list[0];
+    const label = new Date(top.date).toLocaleDateString([], {weekday:"long", month:"short", day:"numeric"});
+    return `<div class="day"><h3 class="day-h"><button class="tog" type="button" data-tog="${esc(key)}" aria-expanded="${open}"><span class="chev" aria-hidden="true"></span>${esc(label)}<span class="count">${list.length} game${list.length > 1 ? "s" : ""}</span>${open ? "" : `<span class="peek">Top: ${esc(top.away.name)} at ${esc(top.home.name)} · ${top.score}</span>`}</button></h3>
+      ${open ? `<div class="grid">${capped(list, key)}</div>` : ""}</div>`;
+  }).join("") : "";
+  $("#upCount").textContent = upList.length ? days.length + " day" + (days.length > 1 ? "s" : "") + " · " + upList.length + " games" : "";
 
-  $("#finSec").hidden = !fin.length;
-  $("#finGrid").innerHTML = fin.map(card).join("");
+  setSection("fin", fin, "#finSec", "#finGrid", true);
   $("#finCount").textContent = fin.length ? fin.length + " games" : "";
 
   // Keep an open game modal current.
@@ -1153,6 +1173,20 @@ if ("ResizeObserver" in window){
     const el = document.getElementById("exChart"), w = el && el.clientWidth;
     if (w && w !== gw && openId){ gw = w; const g = games.find(x => x.id === openId); if (g) drawGame(g); }
   }).observe($("#gameBody"));
+}
+
+function capped(list, key){
+  if (list.length <= CAP + 1) return list.map(card).join("");
+  const all = showAll.has(key);
+  return (all ? list : list.slice(0, CAP)).map(card).join("") +
+    `<button class="more" type="button" data-more="${esc(key)}">${all ? "Show less" : "Show " + (list.length - CAP) + " more"}</button>`;
+}
+function setSection(key, list, secSel, gridSel, def){
+  const open = isOpen(key, def);
+  $(secSel).hidden = !list.length;
+  $(`[data-tog="${key}"]`).setAttribute("aria-expanded", open);
+  $(gridSel).hidden = !open;
+  $(gridSel).innerHTML = open ? capped(list, key) : "";
 }
 
 /* ---------- Game detail ---------- */
@@ -1334,6 +1368,17 @@ $("#selNone").addEventListener("click", () => { selected = new Set(); store.set(
 $("#refreshBtn").addEventListener("click", refresh);
 $("#infoBtn").addEventListener("click", () => $("#howDlg").showModal());
 document.addEventListener("click", e => {
+  const tg = e.target.closest("[data-tog]");
+  if (tg){
+    const key = tg.dataset.tog;
+    openState[key] = tg.getAttribute("aria-expanded") !== "true";
+    store.set("pulse.open", openState);
+    render();
+    const again = document.querySelector(`[data-tog="${CSS.escape(key)}"]`); if (again) again.focus();
+    return;
+  }
+  const mb = e.target.closest("[data-more]");
+  if (mb){ const k = mb.dataset.more; showAll.has(k) ? showAll.delete(k) : showAll.add(k); render(); return; }
   const g = e.target.closest(".game");
   if (g) { openGame(g.dataset.id); return; }
   if (e.target.closest("[data-close]")) { const d = e.target.closest("dialog"); if (d) d.close(); return; }
