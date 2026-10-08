@@ -111,6 +111,16 @@ section.block{margin-top:30px}
 .tag.hot{color:var(--heat);border-color:color-mix(in srgb,var(--heat) 40%,var(--line))}
 .tag.red{color:var(--must);border-color:color-mix(in srgb,var(--must) 40%,var(--line))}
 
+/* Live situation line */
+.sit{display:flex;align-items:center;gap:7px;font-family:var(--label);font-size:13px;letter-spacing:.03em;color:var(--muted);min-width:0}
+.sit span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sit.rz{color:var(--heat)}
+.sit svg{flex:none}
+.now-box{background:var(--surface-2);border-radius:10px;padding:10px 12px;display:grid;gap:4px}
+.now-box .sit{font-size:15px;color:var(--text)}
+.now-box .lp{font-size:14px;color:var(--muted)}
+.now-box .lp b{color:var(--text);font-weight:600}
+
 .loading{color:var(--muted);padding:30px 0;font-size:15px}
 
 /* Modals */
@@ -259,6 +269,8 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
         <li><b>Upsets</b>: an underdog leading, weighted by the betting line, or by ranking gap when no line exists.</li>
         <li><b>Overtime</b> and <b>crunch time</b> in a one-score game.</li>
         <li><b>Stakes</b>: the pregame hype score below.</li>
+        <li><b>Right now</b>: the live situation. In baseball: runners on, outs, the count, and whether the tying or winning run is on base or at the plate. In football: red zone, 4th down and the two-minute drill when the team with the ball is within one score. In soccer: red cards.</li>
+        <li><b>Fresh scores</b>: a score jolts the number, more for a go-ahead or tying score, then fades over about five minutes.</li>
       </ul>
       <h4>Where it starts</h4>
       <p>Every game opens at its <b>hype score</b>: rankings, rivalry, and how close the line is. Over the first third of the game that anchor hands off to what is actually happening on the field.</p>
@@ -391,6 +403,33 @@ function parseOdds(comp, home, away, L){
   const favProb = 1 / (1 + Math.exp(-spread / (L.tm * 0.55)));
   return {favId: fav.id, favProb, text: d};
 }
+/* Live situation: runners, count, down & distance, last play, goals and red cards. Every field is optional. */
+function parseSit(comp, home, away, L){
+  const s = comp.situation || {}, out = {};
+  const sideOf = id => id == null ? null : String(id) === String(home.id) ? "home" : String(id) === String(away.id) ? "away" : null;
+  if (typeof s.outs === "number") out.outs = s.outs;
+  if (typeof s.balls === "number") out.balls = s.balls;
+  if (typeof s.strikes === "number") out.strikes = s.strikes;
+  if ("onFirst" in s || "onSecond" in s || "onThird" in s) out.on = [!!s.onFirst, !!s.onSecond, !!s.onThird];
+  if (typeof s.down === "number" && s.down >= 1){ out.down = s.down; out.dist = s.distance; }
+  if (s.downDistanceText || s.shortDownDistanceText) out.dd = s.downDistanceText || s.shortDownDistanceText;
+  if (s.possession != null) out.poss = sideOf(s.possession);
+  out.redZone = !!s.isRedZone;
+  out.goalToGo = /goal/i.test(out.dd || "");
+  const lp = s.lastPlay;
+  if (lp && (lp.text || lp.type)){
+    const type = (lp.type && (lp.type.text || lp.type.abbreviation)) || "";
+    out.lastPlay = {text: lp.text || type, type,
+      side: sideOf(lp.team && lp.team.id),
+      score: Number(lp.scoreValue) > 0 || /touchdown|home run|^goal/i.test(type)};
+  }
+  if (L.kind === "soccer" && Array.isArray(comp.details)){
+    const min = d => { const c = d.clock || {}; return typeof c.value === "number" ? c.value / 60 : parseInt(c.displayValue, 10) || 0; };
+    out.goals = comp.details.filter(d => d.scoringPlay).map(d => ({min: min(d), side: sideOf(d.team && d.team.id), text: (d.type && d.type.text) || "Goal"}));
+    out.reds = comp.details.filter(d => d.redCard).map(d => ({min: min(d), side: sideOf(d.team && d.team.id)}));
+  }
+  return out;
+}
 function parseEvent(ev, L){
   const comp = ev.competitions && ev.competitions[0];
   if (!comp) return null;
@@ -411,6 +450,7 @@ function parseEvent(ev, L){
     detail: type.shortDetail || type.detail || "",
     period: st.period || 0, clock: typeof st.clock === "number" ? st.clock : null, displayClock: st.displayClock || "",
     outs: comp.situation && typeof comp.situation.outs === "number" ? comp.situation.outs : null,
+    sit: parseSit(comp, home, away, L),
     date: ev.date, home, away,
     odds: parseOdds(comp, home, away, L),
     note, conf: !!comp.conferenceCompetition,
@@ -505,6 +545,79 @@ function hypeScore(g, L){
   return {value: clamp(h, 8, 92), parts};
 }
 
+/* ---------- Right now: the live situation ---------- */
+const BASE_W = [0, .3, .5, .7, .55, .75, .85, 1];   // none, 1st, 2nd, 1st+2nd, 3rd, 1st+3rd, 2nd+3rd, loaded
+function moment(g, L, p, m, closeness){
+  const s = g.sit || {}, tags = [];
+  let v = 0;
+  if (g.state !== "in") return {v, tags};
+  if (L.kind === "baseball"){
+    const d = (g.detail || "").toLowerCase(), top = d.startsWith("top"), bot = d.startsWith("bot");
+    if ((top || bot) && s.on){
+      const r = s.on.filter(Boolean).length;
+      const def = top ? m : -m;                       // batting team's deficit
+      const idx = (s.on[0] ? 1 : 0) + (s.on[1] ? 2 : 0) + (s.on[2] ? 4 : 0);
+      const outsF = [0.9, 1, 1.15][clamp(s.outs || 0, 0, 2)];
+      const inPlay = def >= 0 && r + 1 >= def;        // the tying run is at least at the plate
+      v = (3 + 10 * BASE_W[idx] * outsF) * (0.45 + 0.55 * p) * (inPlay ? 1 : 0.35);
+      if (bot && g.period >= 9 && inPlay && r + 1 > def){ v += 7; tags.push(["Walk-off chance", "red"]); }
+      else if (r === 3) tags.push(["Bases loaded", "hot"]);
+      else if (def > 0 && r >= def) tags.push(["Tying run on", "hot"]);
+      else if (def >= 0 && r > def) tags.push(["Go-ahead run on", "hot"]);
+      else if (s.on[1] || s.on[2]) tags.push(["Scoring position", ""]);
+      if (s.balls === 3 && s.strikes === 2 && (r || p > .7)){ v += 2; tags.push(["Full count", ""]); }
+      v *= 0.35 + 0.65 * Math.max(closeness, inPlay ? 0.8 : 0);
+    }
+  } else if (L.id === "nfl" || L.id === "ncaaf"){
+    if (s.poss){
+      const lead = s.poss === "home" ? m : -m;        // possession team's lead
+      const live = lead <= 0 && -lead <= L.one;       // trailing or tied, within one score
+      const lp = 0.4 + 0.6 * p;
+      if (s.redZone){ v += (live ? 9 : 4) * lp; tags.push([s.goalToGo ? "Goal to go" : "Red zone", "hot"]); }
+      if (s.down === 4 && live && p > .5){ v += 5 * lp; tags.push(["4th & " + (s.dist ?? ""), "red"]); }
+      if (live && g.period >= L.periods && g.clock != null && g.clock <= 120){ v += 6; tags.push(["Two-minute drill", "red"]); }
+      v *= 0.35 + 0.65 * closeness;
+    }
+  } else if (L.kind === "soccer" && s.reds && s.reds.length){
+    v += 3 * (0.5 + 0.5 * closeness);
+    tags.push([s.reds.length > 1 ? s.reds.length + " red cards" : "Red card", "red"]);
+  }
+  return {v: Math.min(18, v), tags};
+}
+
+/* A fresh score jolts the number, then fades over a few minutes. */
+function noteScoring(g){
+  if (g.state !== "in") return;
+  const h = history[g.id] || (history[g.id] = {ts:Date.now(), pts:[]});
+  const prev = h.sc, now = Date.now(), s = g.sit || {};
+  const kindOf = (before, after) => after === 0 ? "tie" : Math.sign(before) !== Math.sign(after) ? "ahead" : "score";
+  const after = g.home.score - g.away.score;
+  if (prev && (prev.h !== g.home.score || prev.a !== g.away.score)){
+    if (g.home.score + g.away.score > prev.h + prev.a){
+      const side = g.home.score - prev.h >= g.away.score - prev.a ? "home" : "away";
+      h.jolt = {ts:now, side, kind:kindOf(prev.h - prev.a, after), text: s.lastPlay && s.lastPlay.score ? s.lastPlay.text : ""};
+    }
+  } else if (!prev){
+    // First look at this game: trust ESPN's own record of a recent score.
+    const L = LG[g.lg];
+    if (s.goals && s.goals.length){
+      const gl = s.goals[s.goals.length - 1], ago = g.p * 90 - gl.min;
+      if (ago >= 0 && ago < 8) h.jolt = {ts: now - ago * 60e3, side: gl.side, kind: "score", text: ""};
+    } else if (s.lastPlay && s.lastPlay.score && L.kind !== "soccer"){
+      h.jolt = {ts: now - 60e3, side: s.lastPlay.side, kind: "score", text: s.lastPlay.text};
+    }
+  }
+  h.sc = {h:g.home.score, a:g.away.score};
+}
+function jolt(g, p, closeness){
+  const j = history[g.id] && history[g.id].jolt;
+  if (!j || g.state !== "in") return {v:0};
+  const mins = (Date.now() - j.ts) / 60000;
+  if (mins > 15 || mins < 0) return {v:0};
+  const base = j.kind === "score" ? 6 : 12;
+  return {v: base * (0.5 + 0.5 * p) * (0.4 + 0.6 * closeness) * Math.exp(-mins / 4), j, mins};
+}
+
 /* ---------- Excitement ---------- */
 function rate(g){
   const L = LG[g.lg];
@@ -576,13 +689,17 @@ function rate(g){
   const crunch = (p > 0.85 && am <= L.one) ? 9 * Math.min(1, (p - 0.85) / 0.15) : 0;
   const stakes = (hype.value - 50) * 0.15;
 
-  const live = Math.max(2, core + comeback + leadChg + upset + otB + crunch + stakes);
+  const mo = g._at ? {v:0, tags:[]} : moment(g, L, p, m, closeness);
+  const jo = g._at ? {v:0} : jolt(g, p, closeness);
+  const live = Math.max(2, core + comeback + leadChg + upset + otB + crunch + stakes + mo.v + jo.v);
   const w = Math.min(1, p / 0.333);
   const raw = (1 - w) * hype.value + w * live;
   g.score = Math.round(clamp(compress(raw), 0, 100));
-  g.parts = {closeness, lateness, paceF, paceRatio, core, comeback, swing, leadChg, changes: changes.length, upset, upsetWhy, otB, crunch, stakes, w, live, hist};
+  g.parts = {closeness, lateness, paceF, paceRatio, core, comeback, swing, leadChg, changes: changes.length, upset, upsetWhy, otB, crunch, stakes, mo:mo.v, jo:jo.v, w, live, hist};
 
   const tags = [];
+  if (jo.v > 1 && jo.mins < 5) tags.push([jo.j.kind === "tie" ? "Game tied!" : jo.j.kind === "ahead" ? "Go-ahead score" : "Just scored", jo.j.kind === "score" ? "hot" : "red"]);
+  tags.push(...mo.tags);
   if (ot) tags.push(["Overtime", "red"]);
   if (crunch > 2 && g.state === "in") tags.push(["Crunch time", "red"]);
   if (swing >= L.tm * 0.8) tags.push(["Comeback", "hot"]);
@@ -697,6 +814,7 @@ function ingest(list){
     const L = LG[g.lg];
     const {p} = progress(g, L);
     recordSnapshot(g, p);
+    g.p = p; noteScoring(g);
   }
   pruneHistory();
   deltaMap.clear();
@@ -716,7 +834,7 @@ function schedule(){
   clearTimeout(timer);
   if (usingSample) return;
   const anyLive = games.some(g => g.state === "in");
-  timer = setTimeout(refresh, anyLive ? 30000 : 300000);
+  timer = setTimeout(refresh, anyLive ? 20000 : 300000);
 }
 
 function setConn(kind, text){
@@ -746,6 +864,33 @@ function teamRow(t, g, other){
     <span class="nm">${t.rank ? `<span class="rk">${t.rank}</span>` : ""}${esc(t.name)}${!showScore && t.record ? `<span class="rec">${esc(t.record)}</span>` : ""}</span>
     <span class="sc">${showScore ? t.score : ""}</span></div>`;
 }
+function diamond(on, size){
+  const base = (b, cx, cy) => `<rect x="${cx - 3.6}" y="${cy - 3.6}" width="7.2" height="7.2" rx="1" transform="rotate(45 ${cx} ${cy})" fill="${b ? "var(--heat)" : "none"}" stroke="${b ? "var(--heat)" : "var(--faint)"}" stroke-width="1.6"/>`;
+  return `<svg width="${size}" height="${Math.round(size * 24 / 36)}" viewBox="0 0 36 24" aria-hidden="true">${base(on[1], 18, 6.5)}${base(on[0], 29, 17)}${base(on[2], 7, 17)}</svg>`;
+}
+function sitText(g){
+  const s = g.sit || {}, L = LG[g.lg];
+  if (g.state !== "in") return "";
+  if (L.kind === "baseball"){
+    const d = (g.detail || "").toLowerCase();
+    if (!(d.startsWith("top") || d.startsWith("bot")) || !s.on) return "";
+    const r = s.on.filter(Boolean).length;
+    const parts = [r === 0 ? "Bases empty" : r === 3 ? "Bases loaded" : s.on.map((b, i) => b ? ["1st", "2nd", "3rd"][i] : "").filter(Boolean).join(" & "),
+      (s.outs ?? 0) + " out" + (s.outs === 1 ? "" : "s")];
+    if (s.balls != null && s.strikes != null) parts.push(s.balls + "-" + s.strikes);
+    return {html: diamond(s.on, 27) + `<span>${esc(parts.join(" · "))}</span>`, hot: false};
+  }
+  if ((L.id === "nfl" || L.id === "ncaaf") && (s.dd || s.poss)){
+    const team = s.poss === "home" ? g.home : s.poss === "away" ? g.away : null;
+    const txt = [team ? (team.abbr || team.name) + " ball" : "", s.dd || ""].filter(Boolean).join(" · ");
+    return {html: `<span>🏈 ${esc(txt)}</span>`, hot: s.redZone};
+  }
+  return "";
+}
+function sitHTML(g){
+  const t = sitText(g);
+  return t ? `<div class="sit${t.hot ? " rz" : ""}">${t.html}</div>` : "";
+}
 function card(g){
   const z = zone(g.score);
   const L = LG[g.lg];
@@ -758,6 +903,7 @@ function card(g){
       <div class="g-meta"><span class="lg">${esc(L.label)}</span><span class="st${g.state === "in" ? " live" : ""}">${esc(statusText(g))}</span>${delta}</div>
       ${teamRow(g.away, g, g.home)}
       ${teamRow(g.home, g, g.away)}
+      ${sitHTML(g)}
       ${tags ? `<div class="tags">${tags}</div>` : ""}
     </div>
   </button>`;
@@ -1008,6 +1154,16 @@ function marginChart(g){
     <circle cx="${x(last.p)}" cy="${y(last.m)}" r="3.5" fill="#E9EDF2"/>
   </svg><div class="note">Score margin through the game. Built from period-by-period scores plus what Pulse has seen while open.</div></div>`;
 }
+function nowBox(g){
+  if (g.state !== "in") return "";
+  const s = g.sit || {};
+  const sit = sitHTML(g);
+  const lp = s.lastPlay && s.lastPlay.text ? `<div class="lp"><b>Last play:</b> ${esc(s.lastPlay.text)}</div>` : "";
+  const goals = s.goals && s.goals.length ? `<div class="lp"><b>Goals:</b> ${s.goals.map(x => esc((x.side === "home" ? g.home : x.side === "away" ? g.away : {abbr:""}).abbr) + " " + Math.round(x.min) + "′").join(", ")}</div>` : "";
+  const tags = (g.tags || []).slice(0, 4).map(([t, c]) => `<span class="tag ${c}">${esc(t)}</span>`).join("");
+  if (!sit && !lp && !goals && !tags) return "";
+  return `<div class="now-box"><p class="eyebrow">Right now</p>${sit}${lp}${goals}${tags ? `<div class="tags">${tags}</div>` : ""}</div>`;
+}
 function fillGame(g){
   const L = LG[g.lg];
   const z = zone(g.score);
@@ -1023,12 +1179,14 @@ function fillGame(g){
     rows += barRow("Lead changes", P.leadChg, 24, f(P.leadChg), "var(--heat)");
     rows += barRow(P.upsetWhy || "Upset", P.upset, 16, f(P.upset), "var(--heat)");
     rows += barRow("OT / crunch", P.otB + P.crunch, 21, f(P.otB + P.crunch), "var(--must)");
+    rows += barRow("Right now", P.mo, 18, f(P.mo), "var(--must)");
+    rows += barRow("Fresh score", P.jo, 12, f(P.jo), "var(--must)");
     rows += barRow("Stakes", Math.max(0, P.stakes + 7), 14, f(P.stakes));
     rows += barRow("Live vs hype", P.w, 1, Math.round(P.w * 100) + "%");
   }
   const hypeRows = g.hypeParts.map(([k, v]) => `<div class="bd-row"><span class="k">${esc(k)}</span><span></span><span class="v">${f(v)}</span></div>`).join("");
   const why = g.state === "pre" ? "Pregame hype. The live number takes over once the game starts."
-    : g.state === "post" ? "How the game rated at the final whistle." : "Updates about every 30 seconds while games are live.";
+    : g.state === "post" ? "How the game rated at the final whistle." : "Updates about every 20 seconds while games are live.";
   $("#gameBody").innerHTML = `
     <div class="m-head">
       <div><h2 id="gTitle">${esc(g.away.name)} at ${esc(g.home.name)}</h2>
@@ -1044,6 +1202,7 @@ function fillGame(g){
       <div class="dial"><b>${g.score}</b></div>
       <div><div class="zone">${g.state === "pre" ? "Hype " + g.score : z.name}</div><div class="why">${why}</div></div>
     </div>
+    ${nowBox(g)}
     ${g.curve && g.curve.length > 1 ? `<div class="chart-box"><p class="eyebrow chart-t">Excitement through the game</p><div class="plot" id="exChart"></div><div class="tip" id="exTip" hidden></div>
       <div class="note">Starts at the pregame hype. Period-end points are rebuilt from the box score; Pulse fills in the moments between while it's open.</div></div>` : ""}
     ${P ? `<div class="bd">${rows}</div>` : ""}
@@ -1083,8 +1242,9 @@ function sampleGames(){
       id: "s" + id, date: o.date || iso(-1), season: {type: o.post ? 3 : 2},
       competitions: [{
         competitors: [team(o.home, "home"), team(o.away, "away")],
+        situation: o.sit || (o.outs != null ? {outs: o.outs} : undefined),
+        details: o.details,
         status: {period: o.period || 0, clock: o.clock ?? null, displayClock: o.dc || "", type: {state, name: o.name || "", shortDetail: o.detail || ""}},
-        situation: o.outs != null ? {outs: o.outs} : undefined,
         odds: o.line ? [{details: o.line}] : undefined,
         notes: o.note ? [{headline: o.note}] : [],
         conferenceCompetition: !!o.conf,
@@ -1095,13 +1255,20 @@ function sampleGames(){
   };
   const list = [
     mk("nfl", 1, "in", {period:4, clock:134, detail:"4th - 2:14",
-      away: T("BUF","Bills",24,[3,7,0,14]), home: T("KC","Chiefs",27,[14,7,6,0]), line:"KC -2.5"}),
+      away: T("BUF","Bills",24,[3,7,0,14]), home: T("KC","Chiefs",27,[14,7,6,0]), line:"KC -2.5",
+      sit:{down:3, distance:4, downDistanceText:"3rd & 4 at KC 18", possession:"nflBUF", isRedZone:true,
+        lastPlay:{text:"J.Allen pass short right to K.Coleman for 11 yards", type:{text:"Pass Reception"}}}}),
     mk("ncaaf", 2, "in", {period:3, clock:402, detail:"3rd - 6:42", conf:true,
       away: T("TEX","Texas",31,[14,10]), home: T("OU","Oklahoma",10,[3,7]), line:"TEX -6.5"}),
-    mk("mlb", 3, "in", {period:9, detail:"Bot 9th", outs:1,
+    mk("mlb", 3, "in", {period:9, detail:"Bot 9th",
+      sit:{outs:1, balls:3, strikes:2, onFirst:true, onSecond:true, onThird:false,
+        lastPlay:{text:"Devers walked, Duran to second.", type:{text:"Walk"}}},
       away: T("NYY","Yankees",4,[0,1,0,0,2,0,0,1,0]), home: T("BOS","Red Sox",3,[0,0,0,2,0,0,0,1]), line:"NYY -1.5"}),
     mk("epl", 4, "in", {period:2, clock:4860, dc:"81'", detail:"81'",
-      away: T("TOT","Tottenham",3,[1]), home: T("ARS","Arsenal",3,[2])}),
+      away: T("TOT","Tottenham",3,[1]), home: T("ARS","Arsenal",3,[2]),
+      details:[{scoringPlay:true, clock:{value:720}, team:{id:"eplARS"}}, {scoringPlay:true, clock:{value:1500}, team:{id:"eplTOT"}},
+        {scoringPlay:true, clock:{value:2400}, team:{id:"eplARS"}}, {redCard:true, clock:{value:3900}, team:{id:"eplARS"}},
+        {scoringPlay:true, clock:{value:3960}, team:{id:"eplTOT"}}, {scoringPlay:true, clock:{value:4620}, team:{id:"eplTOT"}}, {scoringPlay:true, clock:{value:4800}, team:{id:"eplARS"}}].map(d => ({...d})) }),
     mk("wnba", 5, "in", {period:2, clock:311, detail:"2nd - 5:11", post:true,
       away: T("NY","Liberty",40,[22]), home: T("LV","Aces",37,[18])}),
     mk("mls", 6, "in", {period:2, clock:4380, dc:"73'", detail:"73'",
