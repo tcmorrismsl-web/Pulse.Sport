@@ -142,7 +142,7 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
 .bd-row .bar i{display:block;height:100%;border-radius:3px;background:var(--z,var(--text))}
 .bd-row .v{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--label);font-weight:600}
 .big-dial{display:flex;align-items:center;gap:14px}
-.big-dial .dial{width:84px;height:84px}
+.big-dial .dial{width:84px;height:84px;flex:none}
 .big-dial .dial::after{inset:6px}
 .big-dial .dial b{font-size:36px}
 .big-dial .zone{font-family:var(--display);font-weight:800;font-size:22px;text-transform:uppercase;color:var(--z)}
@@ -150,6 +150,25 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
 .chart-box{background:var(--surface-2);border-radius:10px;padding:10px 12px}
 .chart-box svg{display:block;width:100%;height:auto}
 .note{color:var(--faint);font-size:12px}
+
+/* Excitement charts */
+.chart-box{position:relative}
+.chart-t{margin:2px 0 6px}
+.lc-box{margin-bottom:12px;padding:12px 12px 10px}
+.lc-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:4px}
+.lc-head .note{margin-left:auto}
+.plot svg{display:block;width:100%;height:auto;touch-action:pan-y;cursor:crosshair}
+.lc .ser{opacity:.3;transition:opacity .15s}
+.lc .ser.ft{opacity:1}
+.lc.hl .ser{opacity:.1}
+.lc.hl .ser.on{opacity:1}
+.lc.hl .lbl{opacity:.35}
+.lc.hl .lbl.on{opacity:1}
+.lc svg{cursor:pointer}
+.tip{position:absolute;top:0;left:0;pointer-events:none;background:#0C1015;border:1px solid var(--line);border-radius:6px;padding:6px 9px;font-size:12px;line-height:1.4;white-space:nowrap;z-index:2;box-shadow:0 6px 18px rgba(0,0,0,.45)}
+.tip b{font-weight:600}
+.tip .tz{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px;vertical-align:0}
+.tip .tm{color:var(--muted)}
 
 @media (max-width:520px){
   .wordmark{font-size:28px}
@@ -199,6 +218,11 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
         <span><i style="background:var(--heat)"></i>Heating up</span>
         <span><i style="background:var(--must)"></i>Must-watch</span>
       </div>
+    </div>
+    <div class="chart-box lc-box" id="liveChartBox" hidden>
+      <div class="lc-head"><p class="eyebrow">Excitement through the game</p><span class="note" id="liveHint">Hover a line to see the game. Click it to open.</span></div>
+      <div class="plot lc" id="liveChart"></div>
+      <div class="tip" id="liveTip" hidden></div>
     </div>
     <div class="grid" id="liveGrid"></div>
   </section>
@@ -319,10 +343,10 @@ const $ = s => document.querySelector(s);
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 function zone(v){
-  if (v >= 80) return {c:"var(--must)",  name:"Must-watch"};
-  if (v >= 60) return {c:"var(--heat)",  name:"Heating up"};
-  if (v >= 40) return {c:"var(--comp)",  name:"Competitive"};
-  return            {c:"var(--quiet)", name:"Quiet"};
+  if (v >= 80) return {c:"var(--must)",  hex:"#FF4757", name:"Must-watch"};
+  if (v >= 60) return {c:"var(--heat)",  hex:"#FF8A3D", name:"Heating up"};
+  if (v >= 40) return {c:"var(--comp)",  hex:"#2FBF71", name:"Competitive"};
+  return            {c:"var(--quiet)", hex:"#4C8DFF", name:"Quiet"};
 }
 // Linear below 70, then an asymptote: 100 is nearly unreachable.
 function compress(x){ return x <= 70 ? x : 70 + 30 * (1 - Math.exp(-(x - 70) / 28)); }
@@ -485,7 +509,7 @@ function hypeScore(g, L){
 function rate(g){
   const L = LG[g.lg];
   const hype = hypeScore(g, L);
-  const {p, ot} = progress(g, L);
+  const {p, ot} = g._at || progress(g, L);
   g.p = p; g.ot = ot; g.hype = hype.value; g.hypeParts = hype.parts;
   if (g.state === "pre"){
     g.score = Math.round(hype.value);
@@ -579,6 +603,43 @@ function hypeTags(g){
   return t;
 }
 
+/* ---------- Excitement curve: rebuilt period ends + live snapshots ---------- */
+function rateAt(g, k, reg){
+  let ch = 0, ca = 0;
+  for (let i = 0; i < k; i++){ ch += g.home.lines[i] || 0; ca += g.away.lines[i] || 0; }
+  const c = {...g, state:"in", statusName:"", period:k + 1,
+    home:{...g.home, score:ch}, away:{...g.away, score:ca}, _at:{p:k / reg, ot:false}};
+  rate(c);
+  return {p:k / reg, s:c.score, h:ch, a:ca, r:true};
+}
+function buildCurve(g){
+  if (g.state === "pre") return null;
+  const L = LG[g.lg];
+  const reg = L.kind === "baseball" ? 9 : L.periods;
+  const H = g.home.lines, A = g.away.lines;
+  let done = g.state === "post" ? Math.min(H.length, A.length) : Math.max(0, (g.period || 1) - 1);
+  done = Math.min(done, H.length, A.length, reg - 1);
+  let pts = [{p:0, s:Math.round(g.hype), h:0, a:0}];
+  for (let k = 1; k <= done; k++) if (k / reg < g.p - 1e-6) pts.push(rateAt(g, k, reg));
+  const saved = history[g.id] && history[g.id].ex || [];
+  for (const s of saved) if (s.p > 0 && s.p < g.p - 1e-6) pts.push(s);
+  pts.sort((a, b) => a.p - b.p);
+  // A live snapshot beats a rebuilt point at nearly the same moment.
+  pts = pts.filter((pt, i) => !pt.r || !pts.some((o, j) => j !== i && !o.r && Math.abs(o.p - pt.p) < 0.01));
+  pts.push({p:g.p, s:g.score, h:g.home.score, a:g.away.score});
+  return pts;
+}
+function recordExcitement(g){
+  if (g.state !== "in") return;
+  const h = history[g.id] || (history[g.id] = {ts:Date.now(), pts:[]});
+  const ex = h.ex || (h.ex = []);
+  const last = ex[ex.length - 1];
+  if (!last || last.s !== g.score || g.p - last.p > 0.01){
+    ex.push({p:+g.p.toFixed(4), s:g.score, h:g.home.score, a:g.away.score});
+    if (ex.length > 300) ex.splice(0, ex.length - 300);
+  }
+}
+
 /* ---------- Fetching ---------- */
 async function fetchLeague(L){
   const url = "https://site.api.espn.com/apis/site/v2/sports/" + L.path + "/scoreboard" + (L.q ? "?" + L.q : "");
@@ -640,6 +701,9 @@ function ingest(list){
   pruneHistory();
   deltaMap.clear();
   games = list.map(rate);
+  for (const g of games) recordExcitement(g);
+  store.set("pulse.hist", history);
+  for (const g of games) g.curve = buildCurve(g);
   for (const g of games){
     const prev = lastScore.get(g.id);
     if (prev != null && g.state === "in") deltaMap.set(g.id, g.score - prev);
@@ -726,6 +790,8 @@ function render(){
   $("#liveGrid").innerHTML = live.length ? live.map(card).join("") :
     `<div class="empty">${selected.size ? "No live games in your leagues right now." : "Pick a league above to see games."}${fin.length || upList.length ? " Finished and upcoming games are below." : ""}</div>`;
   $("#liveCount").textContent = live.length ? live.length + " live" : "";
+  liveList = live;
+  drawLive();
 
   $("#upSec").hidden = !upList.length;
   $("#upGrid").innerHTML = upList.map(card).join("");
@@ -737,6 +803,177 @@ function render(){
 
   // Keep an open game modal current.
   if ($("#gameDlg").open && openId){ const g = games.find(x => x.id === openId); if (g) fillGame(g); }
+}
+
+/* ---------- Charts ---------- */
+const CH = {grid:"#26303B", tick:"#5C6876", label:"#8C98A6", text:"#E9EDF2", font:"Barlow Condensed, sans-serif"};
+function chartFrame(W, H, pad, xTicks){
+  const x = p => pad.l + p * (W - pad.l - pad.r);
+  const y = s => pad.t + (1 - s / 100) * (H - pad.t - pad.b);
+  const bands = [[0,40,"#4C8DFF"],[40,60,"#2FBF71"],[60,80,"#FF8A3D"],[80,100,"#FF4757"]];
+  let bg = bands.map(([a, b, c]) => `<rect x="${pad.l}" y="${y(b)}" width="${W - pad.l - pad.r}" height="${y(a) - y(b)}" fill="${c}" fill-opacity=".045"/>`).join("");
+  bg += [40, 60, 80].map(v => `<line x1="${pad.l}" x2="${W - pad.r}" y1="${y(v)}" y2="${y(v)}" stroke="${CH.grid}" stroke-dasharray="2 4"/>
+    <text x="${pad.l - 6}" y="${y(v) + 3.5}" fill="${CH.tick}" font-size="10" text-anchor="end" font-family="${CH.font}">${v}</text>`).join("");
+  bg += `<line x1="${pad.l}" x2="${W - pad.r}" y1="${y(0)}" y2="${y(0)}" stroke="${CH.grid}"/>`;
+  bg += xTicks.map(([p, t], i) => {
+    const anchor = p <= 0 ? "start" : p >= 1 ? "end" : "middle";
+    return (p > 0 && p < 1 ? `<line x1="${x(p)}" x2="${x(p)}" y1="${pad.t}" y2="${y(0)}" stroke="#1F2831"/>` : "") +
+      `<text x="${x(p)}" y="${H - 6}" fill="${CH.tick}" font-size="10" text-anchor="${anchor}" font-family="${CH.font}">${t}</text>`;
+  }).join("");
+  return {x, y, bg};
+}
+function linePath(pts, x, y){ return pts.map((p, i) => (i ? "L" : "M") + x(p.p).toFixed(1) + " " + y(p.s).toFixed(1)).join(" "); }
+function periodTicks(L){
+  if (L.kind === "baseball") return [[0,"Start"],[3/9,"Inn 3"],[6/9,"Inn 6"],[1,"Inn 9"]];
+  if (L.kind === "soccer") return [[0,"0′"],[.5,"HT"],[1,"90′"]];
+  const n = L.periods, ab = n === 2 ? "H" : n === 3 ? "P" : "Q";
+  return [[0,"Start"], ...Array.from({length:n - 1}, (_, i) => [(i + 1) / n, "End " + ab + (i + 1)]), [1,"End"]];
+}
+function momentLabel(g, p){
+  const L = LG[g.lg];
+  if (p <= 0) return "Pregame hype";
+  if (p >= 1) return g.state === "post" ? "Final" : g.ot ? "OT" : "End";
+  if (L.kind === "soccer") return Math.round(p * 90) + "′";
+  if (L.kind === "baseball") return "Inning " + Math.min(9, Math.floor(p * 9 + 1e-6) + 1);
+  const n = L.periods, ab = n === 2 ? "H" : n === 3 ? "P" : "Q";
+  const k = p * n, whole = Math.abs(k - Math.round(k)) < 0.01;
+  return whole ? "End " + ab + Math.round(k) : ab + Math.min(n, Math.floor(k) + 1);
+}
+function placeTip(tip, box, px, py){
+  tip.hidden = false;
+  const bw = box.clientWidth, tw = tip.offsetWidth, th = tip.offsetHeight;
+  let lx = px + 14; if (lx + tw > bw - 4) lx = px - tw - 14;
+  let ly = py - th - 10; if (ly < 4) ly = py + 14;
+  tip.style.transform = `translate(${Math.max(4, lx)}px,${ly}px)`;
+}
+function svgPoint(svg, e){
+  const r = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal;
+  return {sx:(e.clientX - r.left) * vb.width / r.width, sy:(e.clientY - r.top) * vb.height / r.height, px:e.clientX, py:e.clientY};
+}
+function segDist(px, py, ax, ay, bx, by){
+  const dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy;
+  const t = l2 ? clamp(((px - ax) * dx + (py - ay) * dy) / l2, 0, 1) : 0;
+  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+}
+function valueAt(pts, p){
+  if (p <= pts[0].p) return pts[0];
+  for (let i = 1; i < pts.length; i++) if (pts[i].p >= p) return (p - pts[i - 1].p) < (pts[i].p - p) ? pts[i - 1] : pts[i];
+  return pts[pts.length - 1];
+}
+const scoreText = (g, pt) => `${esc(g.away.abbr || g.away.name)} ${pt.a}–${pt.h} ${esc(g.home.abbr || g.home.name)}`;
+
+/* Live overview: one line per live game, across its own game clock. */
+let liveList = [], liveGeo = null;
+function drawLive(){
+  const box = $("#liveChartBox"), el = $("#liveChart");
+  const series = liveList.filter(g => g.curve && g.curve.length > 1);
+  box.hidden = !series.length;
+  if (!series.length){ liveGeo = null; return; }
+  const W = Math.max(280, Math.round(el.clientWidth || 600)), narrow = W < 520;
+  const H = narrow ? 210 : 250;
+  const pad = {l:28, r:narrow ? 66 : 100, t:10, b:22};
+  const F = chartFrame(W, H, pad, [[0,"Start"],[.25,"¼"],[.5,"Half"],[.75,"¾"],[1,"End"]]);
+  const feat = new Set(series.slice(0, 4).map(g => g.id));
+  const order = [...series].reverse();
+  const lines = order.map(g => {
+    const z = zone(g.score), last = g.curve[g.curve.length - 1];
+    return `<g class="ser${feat.has(g.id) ? " ft" : ""}" data-id="${esc(g.id)}">
+      <path d="${linePath(g.curve, F.x, F.y)}" fill="none" stroke="${z.hex}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      <circle cx="${F.x(last.p)}" cy="${F.y(last.s)}" r="4" fill="${z.hex}" stroke="#1B232C" stroke-width="2"/></g>`;
+  }).join("");
+  // Direct labels for the top four, in the right gutter, nudged apart.
+  const labs = series.filter(g => feat.has(g.id)).map(g => ({g, y:F.y(g.score)})).sort((a, b) => a.y - b.y);
+  for (let i = 1; i < labs.length; i++) if (labs[i].y - labs[i - 1].y < 14) labs[i].y = labs[i - 1].y + 14;
+  const over = labs.length ? labs[labs.length - 1].y - (H - pad.b) : 0;
+  if (over > 0) labs.forEach(l => l.y -= over);
+  const lx = W - pad.r + 8;
+  const labels = labs.map(({g, y}) => `<text class="lbl" data-id="${esc(g.id)}" x="${lx}" y="${y + 4}" fill="${CH.text}" font-size="12" font-weight="600" font-family="${CH.font}">${esc(g.away.abbr || g.away.name)}–${esc(g.home.abbr || g.home.name)}${narrow ? "" : ` <tspan fill="${CH.label}" font-weight="500">${g.score}</tspan>`}</text>`).join("");
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Excitement of each live game from start to now">${F.bg}${lines}${labels}</svg>`;
+  liveGeo = {F, series, svg:el.querySelector("svg")};
+  $("#liveHint").textContent = matchMedia("(hover:hover)").matches ? "Hover a line to see the game. Click it to open." : "Tap a line to open the game.";
+}
+function nearestLive(e){
+  if (!liveGeo) return null;
+  const {F, series, svg} = liveGeo, pt = svgPoint(svg, e);
+  let best = null, bd = 22;
+  for (const g of series){
+    const c = g.curve;
+    for (let i = 1; i < c.length; i++){
+      const d = segDist(pt.sx, pt.sy, F.x(c[i - 1].p), F.y(c[i - 1].s), F.x(c[i].p), F.y(c[i].s));
+      if (d < bd){ bd = d; best = g; }
+    }
+    const l = c[c.length - 1], d = Math.hypot(pt.sx - F.x(l.p), pt.sy - F.y(l.s));
+    if (d < bd){ bd = d; best = g; }
+  }
+  return best && {g:best, pt};
+}
+function hoverLive(e){
+  const hit = nearestLive(e), el = $("#liveChart"), tip = $("#liveTip");
+  el.classList.toggle("hl", !!hit);
+  el.querySelectorAll(".on").forEach(n => n.classList.remove("on"));
+  if (!hit){ tip.hidden = true; return; }
+  const {g, pt} = hit, F = liveGeo.F;
+  el.querySelectorAll(`[data-id="${CSS.escape(g.id)}"]`).forEach(n => n.classList.add("on"));
+  const p = clamp((pt.sx - F.x(0)) / (F.x(1) - F.x(0)), 0, g.p);
+  const at = valueAt(g.curve, p), now = g.curve[g.curve.length - 1];
+  tip.innerHTML = `<b>${esc(g.away.name)} at ${esc(g.home.name)}</b> <span class="tm">· ${esc(LG[g.lg].label)}</span><br>
+    <span class="tz" style="background:${zone(g.score).hex}"></span>Now <b>${g.score}</b> <span class="tm">· ${esc(statusText(g))} · ${scoreText(g, now)}</span>
+    ${at !== now ? `<br><span class="tm">${esc(momentLabel(g, at.p))}: ${at.s} · ${scoreText(g, at)}</span>` : ""}`;
+  const r = $("#liveChartBox").getBoundingClientRect();
+  placeTip(tip, $("#liveChartBox"), pt.px - r.left, pt.py - r.top);
+}
+$("#liveChart").addEventListener("pointermove", hoverLive);
+$("#liveChart").addEventListener("pointerleave", () => { $("#liveChart").classList.remove("hl"); $("#liveTip").hidden = true; });
+$("#liveChart").addEventListener("click", e => { const hit = nearestLive(e); if (hit) openGame(hit.g.id); });
+
+/* Single game: excitement from pregame hype to now. */
+let gameGeo = null;
+function drawGame(g){
+  const el = document.getElementById("exChart");
+  if (!el || !g.curve || g.curve.length < 2){ gameGeo = null; return; }
+  const L = LG[g.lg];
+  const W = Math.max(260, Math.round(el.clientWidth || 520)), H = 180;
+  const pad = {l:28, r:12, t:10, b:22};
+  const F = chartFrame(W, H, pad, periodTicks(L));
+  const c = g.curve, hex = zone(g.score).hex, last = c[c.length - 1];
+  const area = linePath(c, F.x, F.y) + ` L${F.x(last.p).toFixed(1)} ${F.y(0)} L${F.x(0)} ${F.y(0)} Z`;
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Excitement through the game, now ${g.score}">
+    <defs><linearGradient id="exFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${hex}" stop-opacity=".28"/><stop offset="1" stop-color="${hex}" stop-opacity="0"/></linearGradient></defs>
+    ${F.bg}
+    <path d="${area}" fill="url(#exFill)"/>
+    <path d="${linePath(c, F.x, F.y)}" fill="none" stroke="${hex}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="${F.x(last.p)}" cy="${F.y(last.s)}" r="4" fill="${hex}" stroke="#1B232C" stroke-width="2"/>
+    <g id="exCross" visibility="hidden"><line y1="${pad.t}" y2="${F.y(0)}" stroke="${CH.label}" stroke-width="1"/><circle r="4.5" fill="${CH.text}" stroke="#1B232C" stroke-width="2"/></g>
+  </svg>`;
+  gameGeo = {g, F, svg:el.querySelector("svg")};
+}
+function hoverGame(e){
+  if (!gameGeo) return;
+  const {g, F, svg} = gameGeo, pt = svgPoint(svg, e), tip = document.getElementById("exTip");
+  const p = clamp((pt.sx - F.x(0)) / (F.x(1) - F.x(0)), 0, 1);
+  const at = valueAt(g.curve, p), cross = svg.querySelector("#exCross");
+  cross.setAttribute("visibility", "visible");
+  cross.querySelector("line").setAttribute("x1", F.x(at.p)); cross.querySelector("line").setAttribute("x2", F.x(at.p));
+  cross.querySelector("circle").setAttribute("cx", F.x(at.p)); cross.querySelector("circle").setAttribute("cy", F.y(at.s));
+  tip.innerHTML = `<span class="tz" style="background:${zone(at.s).hex}"></span><b>${at.s}</b> <span class="tm">${esc(zone(at.s).name)}</span><br><span class="tm">${esc(momentLabel(g, at.p))} · ${scoreText(g, at)}</span>`;
+  const box = tip.parentElement, r = box.getBoundingClientRect(), sr = svg.getBoundingClientRect();
+  const k = sr.width / svg.viewBox.baseVal.width;
+  placeTip(tip, box, sr.left - r.left + F.x(at.p) * k, sr.top - r.top + F.y(at.s) * k);
+}
+function leaveGame(){
+  const tip = document.getElementById("exTip"); if (tip) tip.hidden = true;
+  const cr = document.getElementById("exCross"); if (cr) cr.setAttribute("visibility", "hidden");
+}
+$("#gameBody").addEventListener("pointermove", e => { if (e.target.closest("#exChart")) hoverGame(e); else leaveGame(); });
+$("#gameBody").addEventListener("pointerleave", leaveGame);
+
+if ("ResizeObserver" in window){
+  let lw = 0, gw = 0;
+  new ResizeObserver(() => { const w = $("#liveChart").clientWidth; if (w && w !== lw){ lw = w; drawLive(); } }).observe($("#liveChart"));
+  new ResizeObserver(() => {
+    const el = document.getElementById("exChart"), w = el && el.clientWidth;
+    if (w && w !== gw && openId){ gw = w; const g = games.find(x => x.id === openId); if (g) drawGame(g); }
+  }).observe($("#gameBody"));
 }
 
 /* ---------- Game detail ---------- */
@@ -807,6 +1044,8 @@ function fillGame(g){
       <div class="dial"><b>${g.score}</b></div>
       <div><div class="zone">${g.state === "pre" ? "Hype " + g.score : z.name}</div><div class="why">${why}</div></div>
     </div>
+    ${g.curve && g.curve.length > 1 ? `<div class="chart-box"><p class="eyebrow chart-t">Excitement through the game</p><div class="plot" id="exChart"></div><div class="tip" id="exTip" hidden></div>
+      <div class="note">Starts at the pregame hype. Period-end points are rebuilt from the box score; Pulse fills in the moments between while it's open.</div></div>` : ""}
     ${P ? `<div class="bd">${rows}</div>` : ""}
     ${marginChart(g)}
     <div><p class="eyebrow" style="margin-bottom:6px">Hype score ${Math.round(g.hype)}</p><div class="bd">${hypeRows}</div>
@@ -816,6 +1055,7 @@ function fillGame(g){
       <a class="btn primary" href="${esc(g.link)}" target="_blank" rel="noopener">Open on ESPN ↗</a>
       <button class="btn" type="button" data-close>Close</button>
     </div>`;
+  requestAnimationFrame(() => drawGame(g));
 }
 function openGame(id){
   const g = games.find(x => x.id === id);
