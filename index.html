@@ -927,10 +927,11 @@ function render(){
   const up = vis.filter(g => g.state === "pre").sort((a, b) => (new Date(a.date) - new Date(b.date)) || (b.score - a.score));
   const fin = vis.filter(g => g.state === "post").sort((a, b) => b.score - a.score);
 
-  // Upcoming: only the next ~36 hours, highest hype first within each day.
+  // Upcoming: only the next ~36 hours, by date, then start time, then hype.
   const soon = Date.now() + 36 * 3600e3;
   const upSoon = up.filter(g => new Date(g.date) <= soon);
-  const upList = (upSoon.length ? upSoon : up.slice(0, 24)).sort((a, b) => b.score - a.score);
+  const t = g => { const d = new Date(g.date).getTime(); return isNaN(d) ? Infinity : d; };
+  const upList = (upSoon.length ? upSoon : up.slice(0, 24)).sort((a, b) => (t(a) - t(b)) || (b.score - a.score));
 
   $("#liveSec").hidden = false;
   $("#liveGrid").innerHTML = live.length ? live.map(card).join("") :
@@ -941,7 +942,7 @@ function render(){
 
   $("#upSec").hidden = !upList.length;
   $("#upGrid").innerHTML = upList.map(card).join("");
-  $("#upCount").textContent = upList.length ? "ranked by hype" : "";
+  $("#upCount").textContent = upList.length ? "by start time, then hype" : "";
 
   $("#finSec").hidden = !fin.length;
   $("#finGrid").innerHTML = fin.map(card).join("");
