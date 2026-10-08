@@ -1,0 +1,912 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pulse Excitement Tracker</title>
+<meta name="description" content="Live 0–100 excitement ratings for every game across the major leagues.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<style>
+/* Pulse commits to one look: a night-game scoreboard. Colors are set explicitly so it reads the same on any host. */
+:root{
+  color-scheme: dark;
+  --ground:#0C1015;
+  --surface:#141A21;
+  --surface-2:#1B232C;
+  --line:#26303B;
+  --text:#E9EDF2;
+  --muted:#8C98A6;
+  --faint:#5C6876;
+  --quiet:#4C8DFF;
+  --comp:#2FBF71;
+  --heat:#FF8A3D;
+  --must:#FF4757;
+  --focus:#9CC2FF;
+  --display:"Big Shoulders Display","Barlow Condensed","Arial Narrow",Impact,sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --label:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{background:var(--ground)}
+body{color:var(--text);font-family:var(--body);font-size:15px;line-height:1.45;margin:0;padding-inline:16px;padding-block:0 48px;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto}
+
+/* Header */
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:color-mix(in srgb,var(--ground) 92%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);margin-inline:-16px;padding:14px 16px 12px;border-bottom:1px solid var(--line)}
+.top-in{max-width:1180px;margin:0 auto;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:12px;margin-right:auto}
+.wordmark{font-family:var(--display);font-weight:900;font-size:34px;letter-spacing:.02em;line-height:1;margin:0}
+.wordmark span{color:var(--must)}
+.tagline{font-family:var(--label);text-transform:uppercase;letter-spacing:.14em;font-size:12px;color:var(--muted)}
+.conn{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--faint);flex:none}
+.dot.live{background:var(--must);box-shadow:0 0 0 0 rgba(255,71,87,.6);animation:beat 1.6s infinite}
+.dot.ok{background:var(--comp)}
+.dot.warn{background:var(--heat)}
+@keyframes beat{0%{box-shadow:0 0 0 0 rgba(255,71,87,.55)}70%{box-shadow:0 0 0 8px rgba(255,71,87,0)}100%{box-shadow:0 0 0 0 rgba(255,71,87,0)}}
+.btn{background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:6px 12px;font-family:var(--label);font-weight:600;letter-spacing:.06em;text-transform:uppercase;font-size:13px;cursor:pointer}
+.btn:hover{border-color:var(--faint)}
+.btn[disabled]{opacity:.5;cursor:default}
+
+/* Leagues */
+.leagues{margin-top:20px;display:grid;gap:10px}
+.row-head{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.eyebrow{font-family:var(--label);text-transform:uppercase;letter-spacing:.14em;font-size:12px;color:var(--muted);font-weight:600;margin:0}
+.link{background:none;border:0;padding:2px 0;color:var(--muted);font-size:13px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--line)}
+.link:hover{color:var(--text)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:transparent;border-radius:999px;padding:5px 12px;font-family:var(--label);font-weight:600;font-size:14px;letter-spacing:.04em;cursor:pointer;color:var(--muted)}
+.chip[aria-pressed="true"]{background:var(--text);color:var(--ground);border-color:var(--text)}
+.chip .n{font-variant-numeric:tabular-nums;font-weight:500;opacity:.7;font-size:12px}
+.chip .ld{width:6px;height:6px;border-radius:50%;background:var(--must)}
+.chip.err .n{color:var(--heat);opacity:1}
+
+/* Banner */
+.banner{margin-top:18px;border:1px solid color-mix(in srgb,var(--heat) 45%,var(--line));background:color-mix(in srgb,var(--heat) 8%,var(--surface));border-radius:8px;padding:10px 14px;font-size:14px;color:var(--text)}
+.banner b{color:var(--heat);font-weight:600}
+
+/* Sections */
+section.block{margin-top:30px}
+.sec-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.sec-title{font-family:var(--display);font-weight:800;font-size:26px;letter-spacing:.01em;text-transform:uppercase;margin:0;line-height:1}
+.count{font-family:var(--label);color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}
+.info{width:22px;height:22px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--muted);font-family:Georgia,serif;font-style:italic;font-weight:700;font-size:13px;line-height:1;cursor:pointer;display:inline-grid;place-items:center;padding:0}
+.info:hover{color:var(--text);border-color:var(--faint)}
+.legend{margin-left:auto;display:flex;gap:12px;flex-wrap:wrap;font-family:var(--label);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:3px;border-radius:2px;margin-right:5px;vertical-align:middle}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:10px}
+.empty{color:var(--muted);font-size:14px;padding:18px;border:1px dashed var(--line);border-radius:8px}
+
+/* Game card */
+.game{display:grid;grid-template-columns:62px 1fr;gap:14px;align-items:center;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px 12px 12px;cursor:pointer;width:100%;position:relative;overflow:hidden}
+.game:hover{border-color:var(--faint);background:var(--surface-2)}
+.game::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--z)}
+.dial{width:62px;height:62px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--z) calc(var(--v)*1%),var(--line) 0);position:relative}
+.dial::after{content:"";position:absolute;inset:5px;border-radius:50%;background:var(--surface)}
+.game:hover .dial::after{background:var(--surface-2)}
+.dial b{position:relative;z-index:1;font-family:var(--display);font-weight:800;font-size:26px;line-height:1;font-variant-numeric:tabular-nums;color:var(--z)}
+.dial small{position:absolute;z-index:1;bottom:9px;font-family:var(--label);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.dial.pre b{color:var(--text)}
+.g-main{min-width:0;display:grid;gap:5px}
+.g-meta{display:flex;align-items:center;gap:8px;font-family:var(--label);font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);min-width:0}
+.g-meta .lg{color:var(--text);font-weight:700}
+.g-meta .st{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.g-meta .st.live{color:var(--must);font-weight:600}
+.g-meta .delta{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:600}
+.delta.up{color:var(--heat)} .delta.down{color:var(--quiet)}
+.team{display:grid;grid-template-columns:20px 1fr auto;gap:8px;align-items:center;font-size:15px}
+.team img,.team .ph{width:20px;height:20px;object-fit:contain}
+.team .ph{border-radius:50%;background:var(--line)}
+.team .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+.team .rk{font-family:var(--label);color:var(--muted);font-size:12px;margin-right:4px;font-weight:600}
+.team .rec{color:var(--faint);font-size:12px;margin-left:6px;font-variant-numeric:tabular-nums}
+.team .sc{font-family:var(--display);font-weight:800;font-size:22px;line-height:1;font-variant-numeric:tabular-nums;min-width:2ch;text-align:right}
+.team.lose .nm,.team.lose .sc{color:var(--muted)}
+.tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px}
+.tag{font-family:var(--label);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:4px;background:var(--surface-2);border:1px solid var(--line);color:var(--muted)}
+.tag.hot{color:var(--heat);border-color:color-mix(in srgb,var(--heat) 40%,var(--line))}
+.tag.red{color:var(--must);border-color:color-mix(in srgb,var(--must) 40%,var(--line))}
+
+.loading{color:var(--muted);padding:30px 0;font-size:15px}
+
+/* Modals */
+dialog{background:var(--surface);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:0;width:min(600px,calc(100vw - 32px));max-height:calc(100dvh - 48px)}
+dialog::backdrop{background:rgba(4,6,9,.72)}
+.m-in{padding:22px 22px 18px;display:grid;gap:14px;overflow:auto;max-height:calc(100dvh - 50px)}
+.m-head{display:flex;align-items:flex-start;gap:12px}
+.m-head h2{font-family:var(--display);font-weight:800;font-size:28px;line-height:1.05;text-transform:uppercase;margin:0;text-wrap:balance}
+.m-head .sub{color:var(--muted);font-size:14px;margin-top:4px}
+.x{margin-left:auto;background:none;border:0;color:var(--muted);font-size:20px;cursor:pointer;padding:0 4px;line-height:1}
+.x:hover{color:var(--text)}
+.how h4{font-family:var(--label);text-transform:uppercase;letter-spacing:.14em;font-size:13px;color:var(--muted);margin:10px 0 4px}
+.how p,.how li{font-size:15px;max-width:62ch;margin:0 0 6px}
+.how ul{margin:0;padding-left:18px}
+.how .z{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.m-foot{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:14px}
+.btn.primary{background:var(--text);color:var(--ground);border-color:var(--text);text-decoration:none;display:inline-flex;align-items:center}
+
+.score-line{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;background:var(--surface-2);border-radius:10px;padding:14px}
+.score-line .side{display:grid;gap:4px;justify-items:center;text-align:center;min-width:0}
+.score-line .side img{width:36px;height:36px;object-fit:contain}
+.score-line .side .nm{font-weight:600;font-size:14px}
+.score-line .big{font-family:var(--display);font-weight:900;font-size:44px;line-height:1;font-variant-numeric:tabular-nums}
+.score-line .mid{font-family:var(--label);color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-size:13px;text-align:center}
+.bd{display:grid;gap:7px}
+.bd-row{display:grid;grid-template-columns:118px 1fr 48px;gap:10px;align-items:center;font-size:14px}
+.bd-row .k{color:var(--muted)}
+.bd-row .bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.bd-row .bar i{display:block;height:100%;border-radius:3px;background:var(--z,var(--text))}
+.bd-row .v{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--label);font-weight:600}
+.big-dial{display:flex;align-items:center;gap:14px}
+.big-dial .dial{width:84px;height:84px}
+.big-dial .dial::after{inset:6px}
+.big-dial .dial b{font-size:36px}
+.big-dial .zone{font-family:var(--display);font-weight:800;font-size:22px;text-transform:uppercase;color:var(--z)}
+.big-dial .why{color:var(--muted);font-size:14px}
+.chart-box{background:var(--surface-2);border-radius:10px;padding:10px 12px}
+.chart-box svg{display:block;width:100%;height:auto}
+.note{color:var(--faint);font-size:12px}
+
+@media (max-width:520px){
+  .wordmark{font-size:28px}
+  .tagline{display:none}
+  .legend{display:none}
+  .bd-row{grid-template-columns:96px 1fr 40px}
+  .score-line .big{font-size:36px}
+}
+@media (prefers-reduced-motion:reduce){.dot.live{animation:none}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-in">
+    <div class="brand">
+      <h1 class="wordmark">PULSE<span>.</span></h1>
+      <span class="tagline">Excitement Tracker</span>
+    </div>
+    <div class="conn" aria-live="polite"><span class="dot" id="connDot"></span><span id="connText">Connecting…</span></div>
+    <button class="btn" id="refreshBtn" type="button">Refresh</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="leagues">
+    <div class="row-head">
+      <p class="eyebrow">Leagues</p>
+      <button class="link" id="selAll" type="button">Select all</button>
+      <button class="link" id="selNone" type="button">Clear</button>
+    </div>
+    <div class="chips" id="chips"></div>
+  </div>
+
+  <div class="banner" id="sampleBanner" hidden><b>Sample games.</b> ESPN's scoreboards can't be reached from here, so these made-up games show how Pulse rates them. Hosted on its own site (Netlify, for example), Pulse shows live scores.</div>
+
+  <div id="loading" class="loading">Loading scoreboards…</div>
+
+  <section class="block" id="liveSec" hidden>
+    <div class="sec-head">
+      <h2 class="sec-title">Live excitement</h2>
+      <button class="info" id="infoBtn" type="button" aria-label="How the excitement number works">i</button>
+      <span class="count" id="liveCount"></span>
+      <div class="legend" aria-hidden="true">
+        <span><i style="background:var(--quiet)"></i>Quiet</span>
+        <span><i style="background:var(--comp)"></i>Competitive</span>
+        <span><i style="background:var(--heat)"></i>Heating up</span>
+        <span><i style="background:var(--must)"></i>Must-watch</span>
+      </div>
+    </div>
+    <div class="grid" id="liveGrid"></div>
+  </section>
+
+  <section class="block" id="upSec" hidden>
+    <div class="sec-head"><h2 class="sec-title">Coming up</h2><span class="count" id="upCount"></span></div>
+    <div class="grid" id="upGrid"></div>
+  </section>
+
+  <section class="block" id="finSec" hidden>
+    <div class="sec-head"><h2 class="sec-title">Final</h2><span class="count" id="finCount"></span></div>
+    <div class="grid" id="finGrid"></div>
+  </section>
+</main>
+
+<dialog id="howDlg" aria-labelledby="howTitle">
+  <div class="m-in how">
+    <div class="m-head">
+      <div>
+        <h2 id="howTitle">How the excitement number works</h2>
+        <div class="sub">A 0–100 read on one question: is this fun to watch right now?</div>
+      </div>
+      <button class="x" type="button" data-close aria-label="Close">✕</button>
+    </div>
+    <div>
+      <h4>The core</h4>
+      <p>Start with <b>how close the score is</b>, measured against what a normal margin looks like in that sport. A three-run baseball game and a three-point football game are not the same thing. Multiply that by <b>how late it is</b>, so a tie in the first quarter counts for less than a tie with a minute left.</p>
+      <h4>Is anything happening</h4>
+      <p>Closeness alone would rate a scoreless draw a perfect 100. So the number is also scaled by <b>scoring pace</b> against that league's norm. A 0–0 match sits in the 40s; a 3–3 match in the 90s. Same margin, very different afternoon.</p>
+      <h4>What pushes it up</h4>
+      <ul>
+        <li><b>Comebacks</b>: how far the margin has moved over the last 15% of the game. A 21–0 run is the single biggest mover.</li>
+        <li><b>Lead changes</b>: worth about double an ordinary score, then fading over the next few minutes.</li>
+        <li><b>Upsets</b>: an underdog leading, weighted by the betting line, or by ranking gap when no line exists.</li>
+        <li><b>Overtime</b> and <b>crunch time</b> in a one-score game.</li>
+        <li><b>Stakes</b>: the pregame hype score below.</li>
+      </ul>
+      <h4>Where it starts</h4>
+      <p>Every game opens at its <b>hype score</b>: rankings, rivalry, and how close the line is. Over the first third of the game that anchor hands off to what is actually happening on the field.</p>
+      <h4>The zones</h4>
+      <ul>
+        <li><span class="z" style="background:var(--quiet)"></span><b>0–40</b> blue: quiet</li>
+        <li><span class="z" style="background:var(--comp)"></span><b>40–60</b> green: competitive</li>
+        <li><span class="z" style="background:var(--heat)"></span><b>60–80</b> orange: heating up</li>
+        <li><span class="z" style="background:var(--must)"></span><b>80–100</b> red: must-watch</li>
+      </ul>
+      <p>The top end is compressed on purpose. Anything above 90 is a genuinely special game, and 100 is close to unreachable.</p>
+    </div>
+    <div class="m-foot"><button class="btn" type="button" data-close>Close</button></div>
+  </div>
+</dialog>
+
+<dialog id="gameDlg" aria-labelledby="gTitle">
+  <div class="m-in" id="gameBody"></div>
+</dialog>
+
+<script>
+(() => {
+"use strict";
+
+/* ---------- League table ----------
+   tm   = a "normal" final margin in that sport
+   pace = typical combined score for a full game
+   one  = a one-score margin (for crunch time)            */
+const LEAGUES = [
+  {id:"nfl",   label:"NFL",        path:"football/nfl", kind:"clock", periods:4, len:15, tm:10,  pace:45,  one:8},
+  {id:"ncaaf", label:"NCAAF",      path:"football/college-football", q:"groups=80&limit=300", kind:"clock", periods:4, len:15, tm:14, pace:55, one:8},
+  {id:"mlb",   label:"MLB",        path:"baseball/mlb", kind:"baseball", periods:9, tm:3.5, pace:9, one:2},
+  {id:"nba",   label:"NBA",        path:"basketball/nba", kind:"clock", periods:4, len:12, tm:12, pace:225, one:6},
+  {id:"wnba",  label:"WNBA",       path:"basketball/wnba", kind:"clock", periods:4, len:10, tm:11, pace:165, one:6},
+  {id:"ncaam", label:"NCAAM",      path:"basketball/mens-college-basketball", q:"groups=50&limit=300", kind:"clock", periods:2, len:20, tm:11, pace:145, one:6},
+  {id:"nhl",   label:"NHL",        path:"hockey/nhl", kind:"clock", periods:3, len:20, tm:1.8, pace:6, one:1},
+  {id:"mls",   label:"MLS",        path:"soccer/usa.1", kind:"soccer", periods:2, len:45, tm:1.3, pace:2.9, one:1},
+  {id:"epl",   label:"Premier League", path:"soccer/eng.1", kind:"soccer", periods:2, len:45, tm:1.3, pace:2.8, one:1},
+  {id:"laliga",label:"La Liga",    path:"soccer/esp.1", kind:"soccer", periods:2, len:45, tm:1.3, pace:2.6, one:1},
+  {id:"seriea",label:"Serie A",    path:"soccer/ita.1", kind:"soccer", periods:2, len:45, tm:1.3, pace:2.6, one:1},
+  {id:"bund",  label:"Bundesliga", path:"soccer/ger.1", kind:"soccer", periods:2, len:45, tm:1.3, pace:3.1, one:1},
+  {id:"ligue1",label:"Ligue 1",    path:"soccer/fra.1", kind:"soccer", periods:2, len:45, tm:1.3, pace:2.7, one:1},
+  {id:"ucl",   label:"Champions League", path:"soccer/uefa.champions", kind:"soccer", periods:2, len:45, tm:1.3, pace:3.0, one:1},
+];
+const LG = Object.fromEntries(LEAGUES.map(l => [l.id, l]));
+
+/* Rivalries by ESPN abbreviation. Unmatched pairs simply never fire. */
+const RIVALS = {
+  nfl:[["GB","CHI"],["DAL","PHI"],["DAL","WSH"],["NYG","DAL"],["KC","LV"],["BAL","PIT"],["CLE","PIT"],["NE","NYJ"],["SF","SEA"],["SF","DAL"],["BUF","MIA"],["DEN","KC"]],
+  ncaaf:[["MICH","OSU"],["AUB","ALA"],["TEX","OU"],["UGA","FLA"],["USC","ND"],["ARMY","NAVY"],["CLEM","SC"],["LSU","ALA"],["ORE","WASH"],["MISS","MSST"],["TENN","ALA"],["FSU","FLA"],["TEX","TA&M"],["MINN","WIS"],["UGA","GT"],["STAN","CAL"],["BYU","UTAH"],["IOWA","ISU"],["KU","KSU"],["UCLA","USC"]],
+  mlb:[["NYY","BOS"],["LAD","SF"],["CHC","STL"],["CHC","CHW"],["NYY","NYM"],["LAD","SD"]],
+  nba:[["LAL","BOS"],["LAL","LAC"],["NY","BKN"],["BOS","PHI"],["GS","LAL"]],
+  nhl:[["TOR","MTL"],["EDM","CGY"],["PIT","PHI"],["NYR","NYI"],["BOS","MTL"],["CHI","DET"]],
+  epl:[["ARS","TOT"],["LIV","EVE"],["MAN","MNC"],["LIV","MAN"],["ARS","CHE"]],
+  laliga:[["RMA","BAR"],["ATM","RMA"],["SEV","BET"]],
+  seriea:[["INT","MIL"],["JUV","INT"],["ROMA","LAZ"]],
+  bund:[["BVB","S04"],["BAY","BVB"]],
+  ligue1:[["PSG","MAR"]],
+};
+function isRivalry(lgId, a, b){
+  const list = RIVALS[lgId] || [];
+  return list.some(([x,y]) => (x===a && y===b) || (x===b && y===a));
+}
+
+/* ---------- Storage (per-viewer conveniences only) ---------- */
+const store = {
+  get(k, d){ try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+
+let selected = new Set(store.get("pulse.leagues", LEAGUES.map(l => l.id)));
+let history = store.get("pulse.hist", {});       // gameId -> {ts, pts:[{p,m}]}
+const lastScore = new Map();                      // gameId -> previous excitement
+const deltaMap = new Map();                       // gameId -> change since last refresh
+let games = [];                                    // parsed + rated
+let leagueState = {};                             // id -> {ok, n, live}
+let usingSample = false;
+let timer = null, busy = false;
+
+/* ---------- Helpers ---------- */
+const $ = s => document.querySelector(s);
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function zone(v){
+  if (v >= 80) return {c:"var(--must)",  name:"Must-watch"};
+  if (v >= 60) return {c:"var(--heat)",  name:"Heating up"};
+  if (v >= 40) return {c:"var(--comp)",  name:"Competitive"};
+  return            {c:"var(--quiet)", name:"Quiet"};
+}
+// Linear below 70, then an asymptote: 100 is nearly unreachable.
+function compress(x){ return x <= 70 ? x : 70 + 30 * (1 - Math.exp(-(x - 70) / 28)); }
+
+/* ---------- ESPN parsing ---------- */
+function parseTeam(c){
+  const t = c.team || {};
+  const rank = c.curatedRank && c.curatedRank.current;
+  const rec = (c.records && c.records[0] && c.records[0].summary) || "";
+  let wp = null;
+  const m = /^(\d+)-(\d+)(?:-(\d+))?/.exec(rec);
+  if (m){ const w=+m[1], l=+m[2], d=+(m[3]||0); if (w+l+d >= 3) wp = (w + d/2) / (w+l+d); }
+  return {
+    id: t.id, abbr: t.abbreviation || "", name: t.shortDisplayName || t.displayName || t.name || "TBD",
+    full: t.displayName || t.name || "",
+    logo: t.logo || (t.logos && t.logos[0] && t.logos[0].href) || "",
+    score: Number(c.score) || 0,
+    rank: rank && rank <= 25 ? rank : null,
+    record: rec, wp,
+    lines: (c.linescores || []).map(l => Number(l.value) || 0),
+    winner: !!c.winner,
+  };
+}
+function mlProb(ml){ ml = Number(ml); if (!ml) return null; return ml < 0 ? -ml / (-ml + 100) : 100 / (ml + 100); }
+function parseOdds(comp, home, away, L){
+  const o = comp.odds && comp.odds[0];
+  if (!o) return null;
+  // Moneylines are the cleanest read of win probability.
+  const ph = mlProb(o.homeTeamOdds && o.homeTeamOdds.moneyLine), pa = mlProb(o.awayTeamOdds && o.awayTeamOdds.moneyLine);
+  if (ph && pa){
+    const h = ph / (ph + pa);
+    return h >= .5 ? {favId: home.id, favProb: h, text: o.details || ""} : {favId: away.id, favProb: 1 - h, text: o.details || ""};
+  }
+  const d = (o.details || "").trim();
+  if (!d) return null;
+  if (/^even|pk|pick/i.test(d)) return {favId:null, favProb:.5, text:d};
+  const mm = /^([A-Z0-9&.]+)\s*(-?\d+(?:\.\d+)?)/i.exec(d);
+  if (!mm) return null;
+  const spread = Math.abs(parseFloat(mm[2]));
+  const fav = mm[1].toUpperCase() === (home.abbr||"").toUpperCase() ? home : mm[1].toUpperCase() === (away.abbr||"").toUpperCase() ? away : null;
+  if (!fav) return null;
+  const favProb = 1 / (1 + Math.exp(-spread / (L.tm * 0.55)));
+  return {favId: fav.id, favProb, text: d};
+}
+function parseEvent(ev, L){
+  const comp = ev.competitions && ev.competitions[0];
+  if (!comp) return null;
+  const cs = comp.competitors || [];
+  const hc = cs.find(c => c.homeAway === "home") || cs[0];
+  const ac = cs.find(c => c.homeAway === "away") || cs[1];
+  if (!hc || !ac) return null;
+  const st = comp.status || ev.status || {};
+  const type = st.type || {};
+  const name = type.name || "";
+  if (/POSTPONED|CANCELED|CANCELLED|SUSPENDED|FORFEIT|DELAYED/.test(name) && type.state !== "in") return null;
+  const home = parseTeam(hc), away = parseTeam(ac);
+  const link = (ev.links || []).find(l => (l.rel || []).includes("summary")) || (ev.links || [])[0];
+  const note = (comp.notes && comp.notes[0] && comp.notes[0].headline) || "";
+  return {
+    id: L.id + ":" + ev.id, espnId: ev.id, lg: L.id,
+    state: type.state || "pre", statusName: name,
+    detail: type.shortDetail || type.detail || "",
+    period: st.period || 0, clock: typeof st.clock === "number" ? st.clock : null, displayClock: st.displayClock || "",
+    outs: comp.situation && typeof comp.situation.outs === "number" ? comp.situation.outs : null,
+    date: ev.date, home, away,
+    odds: parseOdds(comp, home, away, L),
+    note, conf: !!comp.conferenceCompetition,
+    postseason: ev.season && ev.season.type === 3,
+    venue: comp.venue && comp.venue.fullName || "",
+    broadcast: (comp.broadcasts && comp.broadcasts[0] && comp.broadcasts[0].names || []).join(", "),
+    link: link ? link.href : "https://www.espn.com/" + L.path.split("/")[1] + "/game/_/gameId/" + ev.id,
+  };
+}
+
+/* ---------- Game clock → progress (0 to 1 of regulation) ---------- */
+function progress(g, L){
+  if (g.state === "pre") return {p:0, ot:false};
+  const ot = L.kind === "baseball" ? g.period > 9 : g.period > L.periods;
+  if (g.state === "post" || ot) return {p:1, ot};
+  if (/HALFTIME/.test(g.statusName)) return {p:.5, ot:false};
+  if (L.kind === "soccer"){
+    let secs = g.clock;
+    if (secs == null || !isFinite(secs)){ const n = parseInt(g.displayClock, 10); secs = isNaN(n) ? 0 : n * 60; }
+    return {p: clamp(secs / 5400, 0, 1), ot:false};
+  }
+  if (L.kind === "baseball"){
+    const inn = Math.max(1, g.period);
+    const d = g.detail.toLowerCase();
+    let half = 0, outs = 0;
+    if (d.startsWith("mid")) half = 1;
+    else if (d.startsWith("end")) half = 2;
+    else if (d.startsWith("bot")) { half = 1; outs = g.outs || 0; }
+    else outs = g.outs || 0;
+    return {p: clamp(((inn - 1) * 2 + half + outs / 3) / 18, 0, 1), ot:false};
+  }
+  const perSec = L.len * 60;
+  const period = clamp(g.period || 1, 1, L.periods);
+  const left = g.clock == null ? perSec : clamp(g.clock, 0, perSec);
+  return {p: clamp(((period - 1) * perSec + (perSec - left)) / (L.periods * perSec), 0, 1), ot:false};
+}
+
+/* ---------- Margin history: period-end scores + our own snapshots ---------- */
+function marginHistory(g, L, pNow){
+  const pts = [{p:0, m:0}];
+  const H = g.home.lines, A = g.away.lines;
+  const regPeriods = L.kind === "baseball" ? 9 : L.periods;
+  let done = g.state === "post" ? Math.min(H.length, A.length) : Math.max(0, (g.period || 1) - 1);
+  done = Math.min(done, H.length, A.length, regPeriods);
+  let ch = 0, ca = 0;
+  for (let k = 0; k < done; k++){
+    ch += H[k]; ca += A[k];
+    const p = (k + 1) / regPeriods;
+    if (p < pNow - 1e-6) pts.push({p, m: ch - ca});
+  }
+  const saved = history[g.id] && history[g.id].pts || [];
+  for (const s of saved) if (s.p < pNow - 1e-6) pts.push(s);
+  pts.sort((a, b) => a.p - b.p);
+  pts.push({p: pNow, m: g.home.score - g.away.score});
+  return pts;
+}
+function recordSnapshot(g, p){
+  if (g.state !== "in") return;
+  const h = history[g.id] || (history[g.id] = {ts:0, pts:[]});
+  const m = g.home.score - g.away.score;
+  const last = h.pts[h.pts.length - 1];
+  if (!last || last.m !== m || p - last.p > 0.02){
+    h.pts.push({p: +p.toFixed(4), m});
+    if (h.pts.length > 240) h.pts.splice(0, h.pts.length - 240);
+  }
+  h.ts = Date.now();
+}
+function pruneHistory(){
+  const cutoff = Date.now() - 36 * 3600e3;
+  for (const k in history) if (!history[k] || history[k].ts < cutoff) delete history[k];
+  store.set("pulse.hist", history);
+}
+
+/* ---------- Hype (pregame anchor) ---------- */
+function hypeScore(g, L){
+  const parts = [];
+  let h = 36;
+  const rH = g.home.rank, rA = g.away.rank;
+  if (rH && rA){ const b = 14 + 12 * (1 - (rH + rA) / 50); h += b; parts.push(["Ranked matchup", b]); }
+  else if (rH || rA){ const b = 3 + 6 * (1 - (rH || rA) / 30); h += b; parts.push(["Ranked team", b]); }
+  if (isRivalry(g.lg, g.home.abbr, g.away.abbr)){ h += 12; parts.push(["Rivalry", 12]); }
+  if (g.odds){ const b = 24 * (1 - (g.odds.favProb - .5) * 2) - 6; h += b; parts.push(["Betting line", b]); }
+  else { h += 5; parts.push(["No line (neutral)", 5]); }
+  const w1 = g.home.wp, w2 = g.away.wp;
+  if (w1 != null && w2 != null){
+    const b = (w1 > .6 && w2 > .6) ? 7 : (w1 > .5 && w2 > .5) ? 3 : 0;
+    if (b){ h += b; parts.push(["Both teams winning", b]); }
+  }
+  if (g.postseason){ h += 15; parts.push(["Postseason", 15]); }
+  if (/final|championship|playoff|semifinal|quarterfinal|round of|bowl|cup|derby|rivalry/i.test(g.note)){ h += 8; parts.push([g.note, 8]); }
+  if (g.conf){ h += 2; parts.push(["Conference game", 2]); }
+  return {value: clamp(h, 8, 92), parts};
+}
+
+/* ---------- Excitement ---------- */
+function rate(g){
+  const L = LG[g.lg];
+  const hype = hypeScore(g, L);
+  const {p, ot} = progress(g, L);
+  g.p = p; g.ot = ot; g.hype = hype.value; g.hypeParts = hype.parts;
+  if (g.state === "pre"){
+    g.score = Math.round(hype.value);
+    g.parts = null; g.tags = hypeTags(g);
+    return g;
+  }
+  const m = g.home.score - g.away.score, am = Math.abs(m);
+  const total = g.home.score + g.away.score;
+
+  // Core: closeness (margin vs. what's normal, tighter as time runs out) × lateness.
+  const tmEff = L.tm * (0.75 + 0.75 * Math.sqrt(1 - p));
+  const closeness = Math.exp(-0.9 * (am / tmEff) ** 2);
+  const lateness = ot ? 1 : 0.35 + 0.65 * Math.pow(p, 1.5);
+
+  // Scoring pace vs. the league norm.
+  let paceF = 1, paceRatio = null;
+  if (p >= 0.1){
+    paceRatio = total / (L.pace * p);
+    paceF = Math.min(1.08, 0.5 + 0.5 * Math.pow(Math.min(paceRatio, 1.3), 0.8));
+  }
+  const core = 100 * closeness * lateness * paceF;
+
+  // History-driven: comeback and lead changes.
+  const hist = marginHistory(g, L, p);
+  let swing = 0;
+  if (p > 0.05){
+    const from = p - 0.15;
+    // The margin standing when the window opened counts as its starting point.
+    let startIdx = 0;
+    hist.forEach((pt, i) => { if (pt.p <= from + 1e-6) startIdx = i; });
+    for (let i = startIdx; i < hist.length; i++){
+      const pt = hist[i];
+      if (pt.p >= p) continue;
+      const s = (pt.m !== 0 && Math.sign(pt.m) !== Math.sign(m) && m !== 0) ? Math.abs(pt.m) + am : Math.abs(pt.m) - am;
+      swing = Math.max(swing, s);
+    }
+  }
+  const comeback = 13 * Math.min(2.2, swing / L.tm);
+
+  const changes = [];
+  let lastSign = 0;
+  for (const pt of hist){
+    const s = Math.sign(pt.m);
+    if (s !== 0){ if (lastSign !== 0 && s !== lastSign) changes.push(pt.p); lastSign = s; }
+  }
+  let recent = 0;
+  for (const pc of changes) recent += 11 * Math.exp(-(p - pc) / 0.04);
+  const leadChg = Math.min(16, recent) + Math.min(8, 1.5 * changes.length);
+
+  // Upset: underdog leading, by line or by ranking gap.
+  let upset = 0, upsetWhy = "";
+  const leader = m > 0 ? g.home : m < 0 ? g.away : null;
+  if (g.odds && g.odds.favId){
+    const weight = (g.odds.favProb - .5) * 2;
+    if (leader && leader.id !== g.odds.favId){ upset = 16 * weight * (0.4 + 0.6 * p); upsetWhy = "Underdog leads"; }
+    else if (!leader && p > 0.6){ upset = 8 * weight * p; upsetWhy = "Underdog level"; }
+  } else if (leader){
+    const other = leader === g.home ? g.away : g.home;
+    const rl = leader.rank || 40, ro = other.rank || 40;
+    if (rl > ro){ upset = 16 * Math.min(1, (rl - ro) / 20) * (0.4 + 0.6 * p); upsetWhy = "Lower-ranked team leads"; }
+  }
+
+  const otB = ot ? 12 : 0;
+  const crunch = (p > 0.85 && am <= L.one) ? 9 * Math.min(1, (p - 0.85) / 0.15) : 0;
+  const stakes = (hype.value - 50) * 0.15;
+
+  const live = Math.max(2, core + comeback + leadChg + upset + otB + crunch + stakes);
+  const w = Math.min(1, p / 0.333);
+  const raw = (1 - w) * hype.value + w * live;
+  g.score = Math.round(clamp(compress(raw), 0, 100));
+  g.parts = {closeness, lateness, paceF, paceRatio, core, comeback, swing, leadChg, changes: changes.length, upset, upsetWhy, otB, crunch, stakes, w, live, hist};
+
+  const tags = [];
+  if (ot) tags.push(["Overtime", "red"]);
+  if (crunch > 2 && g.state === "in") tags.push(["Crunch time", "red"]);
+  if (swing >= L.tm * 0.8) tags.push(["Comeback", "hot"]);
+  if (changes.length && p - changes[changes.length - 1] < 0.1) tags.push(["Lead change", "hot"]);
+  else if (changes.length >= 3) tags.push([changes.length + " lead changes", ""]);
+  if (upset > 4) tags.push([g.state === "post" ? "Upset" : "Upset watch", "hot"]);
+  if (isRivalry(g.lg, g.home.abbr, g.away.abbr)) tags.push(["Rivalry", ""]);
+  if (g.state !== "pre" && p > .5 && am > L.tm * 2) tags.push(["Blowout", ""]);
+  g.tags = tags;
+  return g;
+}
+function hypeTags(g){
+  const t = [];
+  if (g.home.rank && g.away.rank) t.push(["Top 25 matchup", "hot"]);
+  if (isRivalry(g.lg, g.home.abbr, g.away.abbr)) t.push(["Rivalry", "hot"]);
+  if (g.postseason) t.push(["Postseason", "red"]);
+  if (g.odds && g.odds.favProb < .58) t.push(["Coin flip", ""]);
+  return t;
+}
+
+/* ---------- Fetching ---------- */
+async function fetchLeague(L){
+  const url = "https://site.api.espn.com/apis/site/v2/sports/" + L.path + "/scoreboard" + (L.q ? "?" + L.q : "");
+  const ctl = new AbortController();
+  const to = setTimeout(() => ctl.abort(), 12000);
+  try {
+    const r = await fetch(url, {signal: ctl.signal});
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json();
+    return (j.events || []).map(ev => parseEvent(ev, L)).filter(Boolean);
+  } finally { clearTimeout(to); }
+}
+
+async function refresh(){
+  if (busy) return;
+  busy = true;
+  $("#refreshBtn").disabled = true;
+  if (!games.length && !usingSample) setConn("", "Connecting…");
+  const ids = LEAGUES.map(l => l.id);
+  const results = await Promise.allSettled(LEAGUES.map(fetchLeague));
+  const next = [];
+  let okCount = 0;
+  leagueState = {};
+  results.forEach((r, i) => {
+    const id = ids[i];
+    if (r.status === "fulfilled"){ okCount++; next.push(...r.value); leagueState[id] = {ok:true, n:r.value.length, live:r.value.filter(g => g.state === "in").length}; }
+    else leagueState[id] = {ok:false, n:0, live:0};
+  });
+
+  if (okCount === 0){
+    // No network path to ESPN (for example inside a sandboxed preview): show labeled sample games.
+    usingSample = true;
+    const sample = sampleGames();
+    leagueState = {};
+    for (const g of sample){ const s = leagueState[g.lg] || (leagueState[g.lg] = {ok:true, n:0, live:0}); s.n++; if (g.state === "in") s.live++; }
+    for (const l of LEAGUES) if (!leagueState[l.id]) leagueState[l.id] = {ok:true, n:0, live:0};
+    ingest(sample);
+    setConn("warn", "Sample data");
+  } else {
+    usingSample = false;
+    ingest(next);
+    const t = new Date().toLocaleTimeString([], {hour:"numeric", minute:"2-digit", second:"2-digit"});
+    const anyLive = next.some(g => g.state === "in");
+    const failed = LEAGUES.filter(l => !leagueState[l.id].ok).length;
+    setConn(anyLive ? "live" : "ok", (anyLive ? "Live" : "Connected") + " · updated " + t + (failed ? " · " + failed + " league" + (failed > 1 ? "s" : "") + " unavailable" : ""));
+  }
+  $("#sampleBanner").hidden = !usingSample;
+  busy = false;
+  $("#refreshBtn").disabled = false;
+  schedule();
+}
+
+function ingest(list){
+  for (const g of list){
+    const L = LG[g.lg];
+    const {p} = progress(g, L);
+    recordSnapshot(g, p);
+  }
+  pruneHistory();
+  deltaMap.clear();
+  games = list.map(rate);
+  for (const g of games){
+    const prev = lastScore.get(g.id);
+    if (prev != null && g.state === "in") deltaMap.set(g.id, g.score - prev);
+    lastScore.set(g.id, g.score);
+  }
+  render();
+}
+
+function schedule(){
+  clearTimeout(timer);
+  if (usingSample) return;
+  const anyLive = games.some(g => g.state === "in");
+  timer = setTimeout(refresh, anyLive ? 30000 : 300000);
+}
+
+function setConn(kind, text){
+  $("#connDot").className = "dot" + (kind ? " " + kind : "");
+  $("#connText").textContent = text;
+}
+
+/* ---------- Rendering ---------- */
+function statusText(g){
+  if (g.state === "pre"){
+    const d = new Date(g.date);
+    if (isNaN(d)) return g.detail;
+    const today = new Date();
+    const sameDay = d.toDateString() === today.toDateString();
+    const time = d.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});
+    return sameDay ? "Today " + time : d.toLocaleDateString([], {weekday:"short", month:"short", day:"numeric"}) + " " + time;
+  }
+  return g.detail || (g.state === "post" ? "Final" : "Live");
+}
+function logoHTML(t, size){
+  return t.logo ? `<img src="${esc(t.logo)}" alt="" width="${size}" height="${size}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'ph'}))">` : `<span class="ph"></span>`;
+}
+function teamRow(t, g, other){
+  const lose = g.state === "post" && t.score < other.score;
+  const showScore = g.state !== "pre";
+  return `<div class="team${lose ? " lose" : ""}">${logoHTML(t, 20)}
+    <span class="nm">${t.rank ? `<span class="rk">${t.rank}</span>` : ""}${esc(t.name)}${!showScore && t.record ? `<span class="rec">${esc(t.record)}</span>` : ""}</span>
+    <span class="sc">${showScore ? t.score : ""}</span></div>`;
+}
+function card(g){
+  const z = zone(g.score);
+  const L = LG[g.lg];
+  const d = deltaMap.get(g.id);
+  const delta = d && Math.abs(d) >= 2 ? `<span class="delta ${d > 0 ? "up" : "down"}">${d > 0 ? "▲" : "▼"} ${Math.abs(d)}</span>` : "";
+  const tags = g.tags.slice(0, 4).map(([t, c]) => `<span class="tag ${c}">${esc(t)}</span>`).join("");
+  return `<button class="game" type="button" data-id="${esc(g.id)}" style="--z:${z.c};--v:${g.score}" aria-label="${esc(g.away.name)} at ${esc(g.home.name)}, excitement ${g.score}">
+    <div class="dial${g.state === "pre" ? " pre" : ""}"><b>${g.score}</b>${g.state === "pre" ? "<small>hype</small>" : ""}</div>
+    <div class="g-main">
+      <div class="g-meta"><span class="lg">${esc(L.label)}</span><span class="st${g.state === "in" ? " live" : ""}">${esc(statusText(g))}</span>${delta}</div>
+      ${teamRow(g.away, g, g.home)}
+      ${teamRow(g.home, g, g.away)}
+      ${tags ? `<div class="tags">${tags}</div>` : ""}
+    </div>
+  </button>`;
+}
+
+function renderChips(){
+  $("#chips").innerHTML = LEAGUES.map(l => {
+    const s = leagueState[l.id];
+    const on = selected.has(l.id);
+    const n = s ? (s.ok ? s.n : "!") : "";
+    return `<button class="chip${s && !s.ok ? " err" : ""}" type="button" data-lg="${l.id}" aria-pressed="${on}" title="${s && !s.ok ? "Couldn't load this league" : ""}">
+      ${s && s.live ? '<span class="ld" aria-label="live games"></span>' : ""}${esc(l.label)}${n !== "" ? `<span class="n">${n}</span>` : ""}</button>`;
+  }).join("");
+}
+
+function render(){
+  $("#loading").hidden = true;
+  renderChips();
+  const vis = games.filter(g => selected.has(g.lg));
+  const live = vis.filter(g => g.state === "in").sort((a, b) => b.score - a.score);
+  const up = vis.filter(g => g.state === "pre").sort((a, b) => (new Date(a.date) - new Date(b.date)) || (b.score - a.score));
+  const fin = vis.filter(g => g.state === "post").sort((a, b) => b.score - a.score);
+
+  // Upcoming: only the next ~36 hours, highest hype first within each day.
+  const soon = Date.now() + 36 * 3600e3;
+  const upSoon = up.filter(g => new Date(g.date) <= soon);
+  const upList = (upSoon.length ? upSoon : up.slice(0, 24)).sort((a, b) => b.score - a.score);
+
+  $("#liveSec").hidden = false;
+  $("#liveGrid").innerHTML = live.length ? live.map(card).join("") :
+    `<div class="empty">${selected.size ? "No live games in your leagues right now." : "Pick a league above to see games."}${fin.length || upList.length ? " Finished and upcoming games are below." : ""}</div>`;
+  $("#liveCount").textContent = live.length ? live.length + " live" : "";
+
+  $("#upSec").hidden = !upList.length;
+  $("#upGrid").innerHTML = upList.map(card).join("");
+  $("#upCount").textContent = upList.length ? "ranked by hype" : "";
+
+  $("#finSec").hidden = !fin.length;
+  $("#finGrid").innerHTML = fin.map(card).join("");
+  $("#finCount").textContent = fin.length ? fin.length + " games" : "";
+
+  // Keep an open game modal current.
+  if ($("#gameDlg").open && openId){ const g = games.find(x => x.id === openId); if (g) fillGame(g); }
+}
+
+/* ---------- Game detail ---------- */
+let openId = null;
+function barRow(label, value, max, display, color){
+  const pct = clamp(value / max * 100, 0, 100);
+  return `<div class="bd-row"><span class="k">${esc(label)}</span><span class="bar"><i style="width:${pct}%;${color ? "background:" + color : ""}"></i></span><span class="v">${display}</span></div>`;
+}
+function marginChart(g){
+  const P = g.parts;
+  if (!P || !P.hist || P.hist.length < 2) return "";
+  const L = LG[g.lg];
+  const pts = P.hist;
+  const maxM = Math.max(L.tm, ...pts.map(p => Math.abs(p.m)));
+  const W = 520, H = 130, padL = 52, padR = 10, padT = 10, padB = 20;
+  const x = p => padL + p * (W - padL - padR);
+  const y = m => padT + (1 - (m + maxM) / (2 * maxM)) * (H - padT - padB);
+  let d = "";
+  pts.forEach((p, i) => { d += (i ? " L" : "M") + x(p.p).toFixed(1) + " " + y(p.m).toFixed(1); });
+  const last = pts[pts.length - 1];
+  const ticks = L.kind === "baseball" ? [3, 6, 9].map(i => [i / 9, "Inn " + i]) :
+    Array.from({length: L.periods}, (_, i) => [(i + 1) / L.periods, L.kind === "soccer" ? ((i + 1) * 45) + "′" : (L.periods === 2 ? "H" : L.periods === 3 ? "P" : "Q") + (i + 1)]);
+  const lbl = Math.round(maxM * 10) / 10;
+  return `<div class="chart-box"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Score margin over the game">
+    <line x1="${padL}" x2="${W - padR}" y1="${y(0)}" y2="${y(0)}" stroke="#26303B" stroke-width="1"/>
+    ${ticks.map(([p]) => `<line x1="${x(p)}" x2="${x(p)}" y1="${padT}" y2="${H - padB}" stroke="#1F2831" stroke-width="1"/>`).join("")}
+    <text x="${padL - 6}" y="${y(maxM) + 4}" fill="#8C98A6" font-size="10" text-anchor="end" font-family="Barlow Condensed, sans-serif">${esc(g.home.abbr)} +${lbl}</text>
+    <text x="${padL - 6}" y="${y(0) + 4}" fill="#8C98A6" font-size="10" text-anchor="end" font-family="Barlow Condensed, sans-serif">Tied</text>
+    <text x="${padL - 6}" y="${y(-maxM) + 4}" fill="#8C98A6" font-size="10" text-anchor="end" font-family="Barlow Condensed, sans-serif">${esc(g.away.abbr)} +${lbl}</text>
+    ${ticks.map(([p, t]) => `<text x="${x(p)}" y="${H - 6}" fill="#5C6876" font-size="10" text-anchor="end" font-family="Barlow Condensed, sans-serif">${t}</text>`).join("")}
+    <path d="${d}" fill="none" stroke="${zone(g.score).c.startsWith("var") ? getComputedStyle(document.documentElement).getPropertyValue(zone(g.score).c.slice(4, -1)).trim() : "#E9EDF2"}" stroke-width="2" stroke-linejoin="round"/>
+    <circle cx="${x(last.p)}" cy="${y(last.m)}" r="3.5" fill="#E9EDF2"/>
+  </svg><div class="note">Score margin through the game. Built from period-by-period scores plus what Pulse has seen while open.</div></div>`;
+}
+function fillGame(g){
+  const L = LG[g.lg];
+  const z = zone(g.score);
+  const P = g.parts;
+  const f = n => { const r = Math.round(n); return r === 0 ? "0" : (r > 0 ? "+" : "−") + Math.abs(r); };
+  let rows = "";
+  if (P){
+    rows += barRow("Closeness", P.closeness, 1, Math.round(P.closeness * 100) + "%");
+    rows += barRow("Lateness", P.lateness, 1, Math.round(P.lateness * 100) + "%");
+    rows += barRow("Scoring pace", P.paceF, 1.08, P.paceRatio == null ? "—" : (P.paceRatio).toFixed(1) + "×");
+    rows += barRow("Core", P.core, 100, Math.round(P.core));
+    rows += barRow("Comeback", P.comeback, 28, f(P.comeback), "var(--heat)");
+    rows += barRow("Lead changes", P.leadChg, 24, f(P.leadChg), "var(--heat)");
+    rows += barRow(P.upsetWhy || "Upset", P.upset, 16, f(P.upset), "var(--heat)");
+    rows += barRow("OT / crunch", P.otB + P.crunch, 21, f(P.otB + P.crunch), "var(--must)");
+    rows += barRow("Stakes", Math.max(0, P.stakes + 7), 14, f(P.stakes));
+    rows += barRow("Live vs hype", P.w, 1, Math.round(P.w * 100) + "%");
+  }
+  const hypeRows = g.hypeParts.map(([k, v]) => `<div class="bd-row"><span class="k">${esc(k)}</span><span></span><span class="v">${f(v)}</span></div>`).join("");
+  const why = g.state === "pre" ? "Pregame hype. The live number takes over once the game starts."
+    : g.state === "post" ? "How the game rated at the final whistle." : "Updates about every 30 seconds while games are live.";
+  $("#gameBody").innerHTML = `
+    <div class="m-head">
+      <div><h2 id="gTitle">${esc(g.away.name)} at ${esc(g.home.name)}</h2>
+      <div class="sub">${esc(L.label)} · ${esc(statusText(g))}${g.note ? " · " + esc(g.note) : ""}</div></div>
+      <button class="x" type="button" data-close aria-label="Close">✕</button>
+    </div>
+    <div class="score-line">
+      <div class="side">${logoHTML(g.away, 36)}<span class="nm">${g.away.rank ? "#" + g.away.rank + " " : ""}${esc(g.away.name)}</span><span class="note">${esc(g.away.record)}</span></div>
+      <div class="mid">${g.state === "pre" ? "vs" : `<span class="big">${g.away.score}–${g.home.score}</span>`}<div>${esc(statusText(g))}</div></div>
+      <div class="side">${logoHTML(g.home, 36)}<span class="nm">${g.home.rank ? "#" + g.home.rank + " " : ""}${esc(g.home.name)}</span><span class="note">${esc(g.home.record)}</span></div>
+    </div>
+    <div class="big-dial" style="--z:${z.c};--v:${g.score}">
+      <div class="dial"><b>${g.score}</b></div>
+      <div><div class="zone">${g.state === "pre" ? "Hype " + g.score : z.name}</div><div class="why">${why}</div></div>
+    </div>
+    ${P ? `<div class="bd">${rows}</div>` : ""}
+    ${marginChart(g)}
+    <div><p class="eyebrow" style="margin-bottom:6px">Hype score ${Math.round(g.hype)}</p><div class="bd">${hypeRows}</div>
+    ${g.odds && g.odds.text ? `<div class="note" style="margin-top:6px">Line: ${esc(g.odds.text)}</div>` : ""}</div>
+    ${g.venue || g.broadcast ? `<div class="note">${esc([g.venue, g.broadcast].filter(Boolean).join(" · "))}</div>` : ""}
+    <div class="m-foot">
+      <a class="btn primary" href="${esc(g.link)}" target="_blank" rel="noopener">Open on ESPN ↗</a>
+      <button class="btn" type="button" data-close>Close</button>
+    </div>`;
+}
+function openGame(id){
+  const g = games.find(x => x.id === id);
+  if (!g) return;
+  openId = id;
+  fillGame(g);
+  const dlg = $("#gameDlg");
+  if (!dlg.open) dlg.showModal();
+}
+
+/* ---------- Sample games (used only when ESPN is unreachable) ---------- */
+function sampleGames(){
+  const now = Date.now();
+  const iso = h => new Date(now + h * 3600e3).toISOString();
+  const T = (abbr, name, score, lines, rank, record) => ({abbr, name, score, lines, rank, record});
+  const mk = (lg, id, state, o) => {
+    const L = LG[lg];
+    const team = (t, side) => ({
+      homeAway: side, score: String(t.score), winner: o.winner === side,
+      team: {id: lg + t.abbr, abbreviation: t.abbr, shortDisplayName: t.name, displayName: t.name},
+      curatedRank: {current: t.rank || 99}, records: t.record ? [{summary: t.record}] : [],
+      linescores: (t.lines || []).map(v => ({value: v})),
+    });
+    const ev = {
+      id: "s" + id, date: o.date || iso(-1), season: {type: o.post ? 3 : 2},
+      competitions: [{
+        competitors: [team(o.home, "home"), team(o.away, "away")],
+        status: {period: o.period || 0, clock: o.clock ?? null, displayClock: o.dc || "", type: {state, name: o.name || "", shortDetail: o.detail || ""}},
+        situation: o.outs != null ? {outs: o.outs} : undefined,
+        odds: o.line ? [{details: o.line}] : undefined,
+        notes: o.note ? [{headline: o.note}] : [],
+        conferenceCompetition: !!o.conf,
+      }],
+      links: [{rel: ["summary"], href: "https://www.espn.com/"}],
+    };
+    return parseEvent(ev, L);
+  };
+  const list = [
+    mk("nfl", 1, "in", {period:4, clock:134, detail:"4th - 2:14",
+      away: T("BUF","Bills",24,[3,7,0,14]), home: T("KC","Chiefs",27,[14,7,6,0]), line:"KC -2.5"}),
+    mk("ncaaf", 2, "in", {period:3, clock:402, detail:"3rd - 6:42", conf:true,
+      away: T("TEX","Texas",31,[14,10]), home: T("OU","Oklahoma",10,[3,7]), line:"TEX -6.5"}),
+    mk("mlb", 3, "in", {period:9, detail:"Bot 9th", outs:1,
+      away: T("NYY","Yankees",4,[0,1,0,0,2,0,0,1,0]), home: T("BOS","Red Sox",3,[0,0,0,2,0,0,0,1]), line:"NYY -1.5"}),
+    mk("epl", 4, "in", {period:2, clock:4860, dc:"81'", detail:"81'",
+      away: T("TOT","Tottenham",3,[1]), home: T("ARS","Arsenal",3,[2])}),
+    mk("wnba", 5, "in", {period:2, clock:311, detail:"2nd - 5:11", post:true,
+      away: T("NY","Liberty",40,[22]), home: T("LV","Aces",37,[18])}),
+    mk("mls", 6, "in", {period:2, clock:4380, dc:"73'", detail:"73'",
+      away: T("SEA","Sounders",0,[0]), home: T("POR","Timbers",0,[0])}),
+    mk("ncaaf", 7, "pre", {date: iso(26), detail:"Sat 3:30 PM",
+      away: T("ALA","Alabama",0,[],6,"3-1"), home: T("UGA","Georgia",0,[],3,"4-0"), line:"UGA -3"}),
+    mk("nfl", 8, "pre", {date: iso(49), detail:"Sun 1:00 PM",
+      away: T("PIT","Steelers",0,[],null,"2-1"), home: T("BAL","Ravens",0,[],null,"2-1"), line:"BAL -4"}),
+    mk("nhl", 9, "pre", {date: iso(8), detail:"7:00 PM",
+      away: T("TOR","Maple Leafs",0,[]), home: T("MTL","Canadiens",0,[])}),
+    mk("nfl", 10, "post", {period:5, detail:"Final/OT", winner:"away",
+      away: T("DET","Lions",33,[7,3,10,7,6]), home: T("GB","Packers",27,[0,14,3,10,0]), line:"GB -3"}),
+    mk("mlb", 11, "post", {period:9, detail:"Final", winner:"home",
+      away: T("CHW","White Sox",1,[0,0,1,0,0,0,0,0,0]), home: T("LAD","Dodgers",11,[3,0,4,0,2,0,2,0])}),
+  ];
+  return list.filter(Boolean);
+}
+
+/* ---------- Events ---------- */
+$("#chips").addEventListener("click", e => {
+  const b = e.target.closest(".chip");
+  if (!b) return;
+  const id = b.dataset.lg;
+  selected.has(id) ? selected.delete(id) : selected.add(id);
+  store.set("pulse.leagues", [...selected]);
+  render();
+});
+$("#selAll").addEventListener("click", () => { selected = new Set(LEAGUES.map(l => l.id)); store.set("pulse.leagues", [...selected]); render(); });
+$("#selNone").addEventListener("click", () => { selected = new Set(); store.set("pulse.leagues", []); render(); });
+$("#refreshBtn").addEventListener("click", refresh);
+$("#infoBtn").addEventListener("click", () => $("#howDlg").showModal());
+document.addEventListener("click", e => {
+  const g = e.target.closest(".game");
+  if (g) { openGame(g.dataset.id); return; }
+  if (e.target.closest("[data-close]")) { const d = e.target.closest("dialog"); if (d) d.close(); return; }
+  if (e.target.tagName === "DIALOG") e.target.close();   // click on backdrop
+});
+$("#gameDlg").addEventListener("close", () => { openId = null; });
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && !usingSample && games.length) refresh();
+});
+
+renderChips();
+refresh();
+})();
+</script>
+</body>
+</html>
