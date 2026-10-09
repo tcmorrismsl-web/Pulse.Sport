@@ -7,36 +7,36 @@
 <meta name="description" content="Live 0–100 excitement ratings for every game across the major leagues.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
 <style>
 /* Pulse commits to one look: a night-game scoreboard. Colors are set explicitly so it reads the same on any host. */
 :root{
   color-scheme: dark;
-  --ground:#0C1015;
-  --surface:#141A21;
-  --surface-2:#1B232C;
-  --line:#26303B;
-  --text:#E9EDF2;
-  --muted:#8C98A6;
-  --faint:#5C6876;
+  --ground:#0A0D12;
+  --surface:#13181E;
+  --surface-2:#1A1F26;
+  --line:#262A33;
+  --text:#E8EBF0;
+  --muted:#7F8792;
+  --faint:#5A606B;
   --quiet:#4C8DFF;
   --comp:#2FBF71;
   --heat:#FF8A3D;
   --must:#FF4757;
   --focus:#9CC2FF;
-  --display:"Big Shoulders Display","Barlow Condensed","Arial Narrow",Impact,sans-serif;
-  --body:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-  --label:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --display:"Oswald","Arial Narrow",Impact,sans-serif;
+  --body:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --label:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
 }
 *{box-sizing:border-box}
 html,body{background:var(--ground)}
-body{color:var(--text);font-family:var(--body);font-size:15px;line-height:1.45;margin:0;padding-inline:16px;padding-block:0 48px;-webkit-font-smoothing:antialiased}
+body{color:var(--text);font-family:var(--body);font-size:15px;line-height:1.45;margin:0;padding-inline:20px;padding-block:0 48px;-webkit-font-smoothing:antialiased}
 button{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .wrap{max-width:1180px;margin:0 auto}
 
 /* Header */
-header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:color-mix(in srgb,var(--ground) 92%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);margin-inline:-16px;padding:14px 16px 12px;border-bottom:1px solid var(--line)}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:color-mix(in srgb,var(--ground) 92%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);margin-inline:-20px;padding:14px 20px 12px;border-bottom:1px solid var(--line)}
 .top-in{max-width:1180px;margin:0 auto;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
 .brand{display:flex;align-items:baseline;gap:12px;margin-right:auto}
 .wordmark{font-family:var(--display);font-weight:900;font-size:34px;letter-spacing:.02em;line-height:1;margin:0}
@@ -70,10 +70,10 @@ header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background
 .banner b{color:var(--heat);font-weight:600}
 
 /* Sections */
-section.block{margin-top:30px}
-.sec-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
-.sec-title{font-family:var(--display);font-weight:800;font-size:26px;letter-spacing:.01em;text-transform:uppercase;margin:0;line-height:1}
-.count{font-family:var(--label);color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}
+section.block{margin-top:26px}
+.sec-head{display:flex;align-items:baseline;gap:8px;margin-bottom:10px}
+.sec-title{font-family:var(--display);font-weight:600;font-size:17px;margin:0;line-height:1;color:#F2F5FA}
+.count{font-family:var(--body);color:#5D646D;font-size:11.5px;font-variant-numeric:tabular-nums}
 .info{flex:none;width:22px;height:22px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--muted);font-family:Georgia,serif;font-style:italic;font-weight:700;font-size:13px;line-height:1;cursor:pointer;display:inline-grid;place-items:center;padding:0}
 .info:hover{color:var(--text);border-color:var(--faint)}
 .legend{margin-left:auto;display:flex;gap:12px;flex-wrap:wrap;font-family:var(--label);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
@@ -82,19 +82,19 @@ section.block{margin-top:30px}
 /* Collapsible sections */
 .tog{background:none;border:0;padding:0;margin:0;font:inherit;color:inherit;letter-spacing:inherit;text-transform:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:0;text-align:left}
 .tog:hover{color:#fff}
-.chev{display:inline-block;flex:none;width:9px;height:9px;border-right:2.5px solid var(--muted);border-bottom:2.5px solid var(--muted);transform:rotate(45deg) translate(-2px,-2px);margin-right:12px;transition:transform .15s}
+.chev{display:inline-block;flex:none;width:6px;height:6px;border-right:1.5px solid #5D646D;border-bottom:1.5px solid #5D646D;transform:rotate(45deg) translate(-2px,-2px);margin-right:9px;transition:transform .15s}
 .tog[aria-expanded="false"] .chev{transform:rotate(-45deg)}
 .tog:hover .chev{border-color:var(--text)}
 .days{display:grid;gap:4px}
-.day{border-top:1px solid var(--line);padding-top:10px}
+.day{border-top:1px solid #1D1D25;padding-top:8px}
 .day:first-child{border-top:0;padding-top:0}
 .day .grid{margin:8px 0 10px}
-.day-h{margin:0;font-family:var(--label);font-weight:700;font-size:16px;letter-spacing:.08em;text-transform:uppercase;color:var(--text)}
+.day-h{margin:0;font-family:var(--body);font-weight:600;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:#88909A}
 .day-h .tog{display:flex;align-items:baseline;gap:10px;width:100%;flex-wrap:wrap;padding:4px 0}
-.day-h .chev{width:7px;height:7px;border-width:2px;margin-right:2px;align-self:center}
-.day-h .count{font-weight:500;letter-spacing:.02em;text-transform:none}
-.day-h .peek{font-family:var(--body);font-weight:400;font-size:13px;letter-spacing:0;text-transform:none;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
-.more{grid-column:1/-1;justify-self:start;background:none;border:1px solid var(--line);border-radius:6px;padding:7px 14px;color:var(--muted);font-family:var(--label);font-weight:600;font-size:13px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+.day-h .chev{width:5px;height:5px;margin-right:2px;align-self:center}
+.day-h .count{font-weight:500;letter-spacing:0;text-transform:none}
+.day-h .peek{font-family:var(--body);font-weight:400;font-size:11px;letter-spacing:0;text-transform:none;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
+.more{grid-column:1/-1;justify-self:start;background:none;border:1px solid #262A35;border-radius:6px;padding:6px 12px;color:#88909A;font-family:var(--body);font-weight:600;font-size:11px;cursor:pointer}
 .more:hover{color:var(--text);border-color:var(--faint)}
 .empty{color:var(--muted);font-size:14px;padding:18px;border:1px dashed var(--line);border-radius:8px}
 
@@ -128,39 +128,40 @@ section.block{margin-top:30px}
 .tag.hot{color:var(--heat);border-color:color-mix(in srgb,var(--heat) 40%,var(--line))}
 .tag.red{color:var(--must);border-color:color-mix(in srgb,var(--must) 40%,var(--line))}
 
-/* Live chart card (matches the original Pulse layout) */
-.lc-card{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px 16px 14px}
-.lc-top{display:flex;align-items:center;gap:10px;margin:0 4px 10px}
-.lc-title{font-family:var(--display);font-weight:800;font-size:30px;letter-spacing:.01em;line-height:1;margin:0;white-space:nowrap}
-.lc-count{margin-left:auto;color:var(--muted);font-size:15px;font-variant-numeric:tabular-nums;white-space:nowrap}
-.lc-empty{color:var(--muted);font-size:14px;padding:18px 4px 8px}
-.list-label{color:var(--muted);font-size:16px;margin:28px 0 12px}
+/* Live chart card: sizes and colors measured from the original Pulse */
+.lc-card{position:relative;background:#11161C;border:1px solid #1D1D25;border-radius:16px;padding:16px 20px 14px 15px}
+.lc-top{display:flex;align-items:center;gap:6px;height:30px;margin:0 0 9px 5px}
+.lc-title{font-family:var(--display);font-weight:600;font-size:17px;line-height:1;margin:0;white-space:nowrap;color:#F2F5FA}
+.lc-top .info{flex:none;width:18px;height:18px;font-size:10px;border:1px solid #2E333B;color:#575F69;font-family:var(--body);font-style:normal;font-weight:500}
+.lc-count{margin-left:auto;color:#5D646D;font-size:11.5px;white-space:nowrap}
+.lc-empty{color:var(--muted);font-size:13px;padding:6px 5px 10px}
+.list-label{color:#606670;font-size:11.5px;font-weight:500;margin:26px 0 10px 1px}
 
 /* Game card */
-.grid.cards{grid-template-columns:repeat(auto-fill,minmax(min(100%,360px),1fr));gap:10px}
-.gc{display:grid;grid-template-columns:4px 1fr auto;gap:0 14px;align-items:stretch;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 14px 14px 13px;cursor:pointer;color:var(--text)}
-.gc:hover{background:var(--surface-2);border-color:var(--faint)}
-.gc .bar{border-radius:3px;background:var(--zc)}
-.gc .body{min-width:0;display:grid;gap:8px;align-content:center}
-.gc .tm{display:grid;grid-template-columns:24px 1fr auto;gap:12px;align-items:center}
-.gc .tm img,.gc .tm .ph{width:24px;height:24px;object-fit:contain}
-.gc .tm .ph{border-radius:50%;background:var(--line)}
-.gc .nm{font-size:17px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.gc .nm .rk{font-family:var(--label);color:var(--muted);font-size:13px;font-weight:600;margin-right:5px}
-.gc .nm .rec{color:var(--faint);font-size:12px;margin-left:7px;font-variant-numeric:tabular-nums}
-.gc .sc{font-family:var(--display);font-weight:800;font-size:24px;line-height:1;color:#A9B3BF;font-variant-numeric:tabular-nums;min-width:2ch;text-align:right}
-.gc .tm.win .sc{color:var(--text)}
-.gc .tm.lose .nm,.gc .tm.lose .sc{color:var(--faint)}
-.gc .meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px;min-width:0}
-.gc .lgn{font-family:var(--label);font-weight:700;font-size:14px;letter-spacing:.03em;color:var(--faint)}
-.gc .st{color:var(--muted);font-size:15px;white-space:nowrap}
-.gc .net{font-family:var(--label);font-weight:600;font-size:13px;letter-spacing:.03em;color:#8EE0B2;background:rgba(47,191,113,.10);border:1px solid rgba(47,191,113,.35);border-radius:6px;padding:1px 7px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
-.gc .ex{display:grid;justify-items:center;align-content:center;min-width:56px;gap:1px}
-.gc .ex b{font-family:var(--display);font-weight:800;font-size:40px;line-height:.95;color:var(--zc);font-variant-numeric:tabular-nums}
-.gc .ex small{color:var(--muted);font-size:13px}
-.gc .ex .d{font-size:14px;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums;margin-top:3px;white-space:nowrap}
-.gc .ex .d.up{color:#6FD39B}
-.gc.pre .ex b{font-size:34px}
+.grid.cards{grid-template-columns:repeat(auto-fill,minmax(min(100%,350px),1fr));gap:8px}
+.gc{display:grid;grid-template-columns:3px 1fr auto;column-gap:13px;width:100%;min-height:99px;text-align:left;background:#13181E;border:1px solid #262A35;border-radius:12px;padding:13px 14px 6px 13px;cursor:pointer;color:#F4F7FD;font-family:var(--body)}
+.gc:hover{background:#171C23}
+.gc .bar{border-radius:2px;background:var(--zc);margin:-1px 0 4px}
+.gc .body{min-width:0;display:grid;grid-template-rows:22px 22px 24px;row-gap:5px;align-content:start}
+.gc .tm{display:grid;grid-template-columns:17px 1fr auto;gap:9px;align-items:center}
+.gc .tm img,.gc .tm .ph{width:17px;height:17px;object-fit:contain}
+.gc .tm .ph{border-radius:50%;background:#262A35}
+.gc .nm{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gc .nm .rk{color:#5C636E;font-size:10.5px;font-weight:600;margin-right:4px}
+.gc .nm .rec{color:#5C636E;font-size:10.5px;font-weight:500;margin-left:6px;font-variant-numeric:tabular-nums}
+.gc .sc{font-family:var(--display);font-weight:500;font-size:16px;line-height:1;color:#868E9A;font-variant-numeric:tabular-nums;text-align:right;padding-left:8px;margin-right:3px}
+.gc .tm.win .sc{color:#F4F7FD}
+.gc .tm.lose .nm,.gc .tm.lose .sc{color:#5C636E}
+.gc .meta{display:flex;align-items:center;gap:8px;min-width:0}
+.gc .lgn{font-size:10px;font-weight:600;color:#5C636E;white-space:nowrap}
+.gc .st{color:#88909A;font-size:11.5px;white-space:nowrap}
+.gc .net{font-size:10px;font-weight:600;line-height:13px;color:#BEE6D1;background:#0F1A16;border:1px solid #2D473A;border-radius:5px;padding:1px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.gc .ex{display:grid;justify-items:end;align-content:center;min-width:24px;margin-top:-7px}
+.gc .ex b{font-family:var(--display);font-weight:600;font-size:23px;line-height:1;color:var(--zc);font-variant-numeric:tabular-nums}
+.gc .ex small{color:#5C636B;font-size:9.5px;line-height:1;margin-top:5px;justify-self:end}
+.gc .ex .d{font-size:10.5px;font-weight:600;line-height:1;color:#5C636B;font-variant-numeric:tabular-nums;margin-top:7px;white-space:nowrap}
+.gc .ex .d.up{color:#7AB594}
+.gc.pre .ex b{font-size:21px}
 
 /* Live situation line */
 .sit{display:flex;align-items:center;gap:7px;font-family:var(--label);font-size:13px;letter-spacing:.03em;color:var(--muted);min-width:0}
@@ -235,8 +236,6 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
   .tagline{display:none}
   .legend{display:none}
   .bd-row{grid-template-columns:96px 1fr 40px}
-  .lc-title{font-size:26px}
-  .lc-count{font-size:14px}
   .score-line .big{font-size:36px}
 }
 @media (prefers-reduced-motion:reduce){.dot.live{animation:none}}
@@ -420,7 +419,7 @@ function zone(v){
   return            {c:"var(--quiet)", hex:"#4C8DFF", name:"Quiet"};
 }
 // Continuous excitement color: teal-blue (quiet) → green → olive → orange → red (must-watch).
-const SCALE = [[0,[66,133,214]],[22,[64,170,170]],[38,[86,190,140]],[52,[150,194,100]],[66,[214,170,84]],[80,[240,136,74]],[92,[255,92,80]],[100,[255,71,87]]];
+const SCALE = [[0,[72,140,165]],[20,[84,158,150]],[32,[92,165,136]],[45,[118,176,118]],[55,[143,173,109]],[65,[190,172,96]],[75,[222,150,80]],[85,[228,122,70]],[100,[232,84,84]]];
 function colorAt(v){
   v = clamp(v, 0, 100);
   for (let i = 1; i < SCALE.length; i++){
@@ -1089,7 +1088,7 @@ function render(){
 }
 
 /* ---------- Charts ---------- */
-const CH = {grid:"#26303B", tick:"#5C6876", label:"#8C98A6", text:"#E9EDF2", font:"Barlow Condensed, sans-serif"};
+const CH = {grid:"#262A33", tick:"#5A606B", label:"#7F8792", text:"#E8EBF0", font:"Inter, -apple-system, sans-serif"};
 function chartFrame(W, H, pad, xTicks){
   const x = p => pad.l + p * (W - pad.l - pad.r);
   const y = s => pad.t + (1 - s / 100) * (H - pad.t - pad.b);
@@ -1153,46 +1152,45 @@ function drawLive(){
   const series = liveList.map(g => ({g, pts: timeCurve(g)})).filter(x => x.pts && x.pts.length > 1);
   el.hidden = !series.length;
   if (!series.length){ el.innerHTML = ""; liveGeo = null; return; }
-  const W = Math.max(280, Math.round(el.clientWidth || 600)), narrow = W < 560;
-  const H = Math.round(clamp(W * 0.95, 300, 400));
-  const pad = {l:24, r:narrow ? 122 : 210, t:6, b:22};
+  // Fixed drawing size, scaled to fit, so type stays small and crisp like the original.
+  const W = 800, H = 400, pad = {l:24, r:132, t:5, b:22};
+  const F = "Inter, -apple-system, system-ui, sans-serif";
   const now = Date.now();
   const t0 = Math.min(...series.map(x => x.pts[0].t)), t1 = now;
-  const x = t => pad.l + (t - t0) / Math.max(1, t1 - t0) * (W - pad.l - pad.r);
+  const pw = W - pad.l - pad.r;
+  const x = t => pad.l + (t - t0) / Math.max(1, t1 - t0) * pw;
   const y = v => pad.t + (1 - v / 100) * (H - pad.t - pad.b);
-  const pw = W - pad.l - pad.r, fs = narrow ? 7.5 : 10;
-  const bands = [[80,100,"#FF4757","Must-watch"],[60,80,"#FF8A3D","Heating up"],[40,60,"#2FBF71","Competitive"],[0,40,"#4C8DFF","Quiet"]];
+  const bands = [[80,100,"#FF4757",.065,"#B0484F","Must-watch"],[60,80,"#F0A030",.06,"#A87A3E","Heating up"],[40,60,"#2FBF71",.07,"#3E8E66","Competitive"],[0,40,"#4C8DFF",.045,"#3F5F8E","Quiet"]];
   let svg = `<defs><linearGradient id="lcGrad" gradientUnits="userSpaceOnUse" x1="0" y1="${y(0)}" x2="0" y2="${y(100)}">${SCALE.map(([v, c]) => `<stop offset="${v / 100}" stop-color="rgb(${c.join(",")})"/>`).join("")}</linearGradient></defs>`;
-  svg += bands.map(([a, b, c, n]) => `<rect x="${pad.l}" y="${y(b)}" width="${pw}" height="${y(a) - y(b)}" fill="${c}" fill-opacity=".07"/>
-    <text x="${pad.l + 5}" y="${y(b) + fs + 4}" fill="${c}" fill-opacity=".75" font-size="${fs}" font-family="${CH.font}">${n}</text>`).join("");
-  svg += [0, 20, 40, 60, 80, 100].map(v => `<line x1="${pad.l}" x2="${pad.l + pw}" y1="${y(v)}" y2="${y(v)}" stroke="#1F2831" stroke-width="1"/>
-    <text x="${pad.l - 5}" y="${y(v) + 3}" fill="${CH.tick}" font-size="${fs}" text-anchor="end" font-family="${CH.font}">${v}</text>`).join("");
-  const nT = W < 420 ? 3 : narrow ? 4 : 7;
+  svg += bands.map(([a, b, c, o]) => `<rect x="${pad.l}" y="${y(b)}" width="${pw}" height="${y(a) - y(b)}" fill="${c}" fill-opacity="${o}"/>`).join("");
+  svg += [20, 40, 60, 80].map(v => `<line x1="${pad.l}" x2="${pad.l + pw}" y1="${y(v)}" y2="${y(v)}" stroke="#FFFFFF" stroke-opacity=".035"/>`).join("");
+  svg += bands.map(([a, b, , , lc, n]) => `<text x="${pad.l + 7}" y="${y(b) + 12}" fill="${lc}" font-size="7.5" font-weight="500" font-family="${F}">${n}</text>`).join("");
+  svg += [0, 20, 40, 60, 80, 100].map(v => `<text x="${pad.l - 6}" y="${y(v) + 2.8}" fill="#4E535A" font-size="8" text-anchor="end" font-family="${F}">${v}</text>`).join("");
+  svg += `<line x1="${pad.l + pw}" x2="${pad.l + pw}" y1="${pad.t}" y2="${y(0)}" stroke="#2A323B"/>`;
+  const nT = 5;
   for (let i = 0; i <= nT; i++){
     const t = t0 + (t1 - t0) * i / nT;
-    svg += `<text x="${x(t)}" y="${H - 6}" fill="${CH.tick}" font-size="${fs}" text-anchor="${i === 0 ? "start" : i === nT ? "end" : "middle"}" font-family="${CH.font}">${timeFmt(t)}</text>`;
+    svg += `<text x="${x(t)}" y="${H - 7}" fill="#4E535A" font-size="8" text-anchor="${i === 0 ? "start" : i === nT ? "end" : "middle"}" font-family="${F}">${timeFmt(t)}</text>`;
   }
-  svg += `<rect x="${pad.l}" y="${pad.t}" width="${pw}" height="${y(0) - pad.t}" fill="none" stroke="#26303B"/>`;
-  // Lines (coolest first so the hottest sit on top).
+  // Lines, coolest first so the hottest sit on top; a small dot at every reading.
   for (const {g, pts} of [...series].reverse()){
     const d = pts.map((p, i) => (i ? "L" : "M") + x(p.t).toFixed(1) + " " + y(p.s).toFixed(1)).join(" ");
     const last = pts[pts.length - 1];
-    svg += `<g class="ser" data-id="${esc(g.id)}"><path d="${d}" fill="none" stroke="url(#lcGrad)" stroke-width="${narrow ? 1.3 : 1.7}" stroke-linejoin="round" stroke-linecap="round"/>
-      <circle cx="${x(last.t)}" cy="${y(last.s)}" r="${narrow ? 2.6 : 3.2}" fill="${colorAt(last.s)}"/></g>`;
+    const dots = pts.slice(0, -1).filter((p, i, a) => i === 0 || Math.abs(x(p.t) - x(a[i - 1].t)) > 2.5 || Math.abs(p.s - a[i - 1].s) > 1.5)
+      .map(p => `<circle cx="${x(p.t).toFixed(1)}" cy="${y(p.s).toFixed(1)}" r="1.5" fill="${colorAt(p.s)}"/>`).join("");
+    svg += `<g class="ser" data-id="${esc(g.id)}"><path d="${d}" fill="none" stroke="url(#lcGrad)" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>${dots}
+      <circle cx="${x(last.t)}" cy="${y(last.s)}" r="3" fill="${colorAt(last.s)}"/></g>`;
   }
   // End labels for every game, nudged apart.
-  const gap = fs + 3.5;
+  const gap = 11.5;
   const labs = series.map(({g, pts}) => ({g, y: y(pts[pts.length - 1].s)})).sort((a, b) => a.y - b.y);
   for (let i = 1; i < labs.length; i++) if (labs[i].y - labs[i - 1].y < gap) labs[i].y = labs[i - 1].y + gap;
   const over = labs.length ? labs[labs.length - 1].y - (y(0) - 2) : 0;
   if (over > 0) labs.forEach(l => l.y -= over);
-  const lx = pad.l + pw + 6;
+  const lx = pad.l + pw + 7;
   svg += labs.map(({g, y: ly}) => {
     const ab = t => esc(t.abbr || t.name);
-    return `<text class="lbl" data-id="${esc(g.id)}" x="${lx}" y="${ly + fs * 0.35}" font-size="${fs}" font-family="${CH.font}">
-      <tspan fill="${colorAt(g.score)}" font-weight="700">${g.score}</tspan>
-      <tspan fill="${CH.text}" font-weight="700"> ${ab(g.away)} ${g.away.score}-${g.home.score} ${ab(g.home)}</tspan>
-      <tspan fill="${CH.tick}" font-size="${fs * 0.85}"> ${esc(statusText(g))}</tspan></text>`;
+    return `<text class="lbl" data-id="${esc(g.id)}" x="${lx}" y="${ly + 3}" font-size="8.6" font-family="${F}"><tspan fill="${colorAt(g.score)}" font-weight="700">${g.score}</tspan><tspan fill="#E8EBF0" font-weight="600"> ${ab(g.away)} ${g.away.score}-${g.home.score} ${ab(g.home)}</tspan><tspan fill="#6E7681" font-size="7.4"> ${esc(statusText(g))}</tspan></text>`;
   }).join("");
   el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Excitement of each live game over time">${svg}</svg>`;
   liveGeo = {x, y, t0, t1, series, svg: el.querySelector("svg")};
@@ -1239,14 +1237,16 @@ function drawGame(g){
   const W = Math.max(260, Math.round(el.clientWidth || 520)), H = 180;
   const pad = {l:28, r:12, t:10, b:22};
   const F = chartFrame(W, H, pad, periodTicks(L));
-  const c = g.curve, hex = zone(g.score).hex, last = c[c.length - 1];
+  const c = g.curve, hex = colorAt(g.score), last = c[c.length - 1];
   const area = linePath(c, F.x, F.y) + ` L${F.x(last.p).toFixed(1)} ${F.y(0)} L${F.x(0)} ${F.y(0)} Z`;
   el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Excitement through the game, now ${g.score}">
-    <defs><linearGradient id="exFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${hex}" stop-opacity=".28"/><stop offset="1" stop-color="${hex}" stop-opacity="0"/></linearGradient></defs>
+    <defs><linearGradient id="exFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${hex}" stop-opacity=".22"/><stop offset="1" stop-color="${hex}" stop-opacity="0"/></linearGradient>
+    <linearGradient id="exLine" gradientUnits="userSpaceOnUse" x1="0" y1="${F.y(0)}" x2="0" y2="${F.y(100)}">${SCALE.map(([v, c]) => `<stop offset="${v / 100}" stop-color="rgb(${c.join(",")})"/>`).join("")}</linearGradient></defs>
     ${F.bg}
     <path d="${area}" fill="url(#exFill)"/>
-    <path d="${linePath(c, F.x, F.y)}" fill="none" stroke="${hex}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-    <circle cx="${F.x(last.p)}" cy="${F.y(last.s)}" r="4" fill="${hex}" stroke="#1B232C" stroke-width="2"/>
+    <path d="${linePath(c, F.x, F.y)}" fill="none" stroke="url(#exLine)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    ${c.slice(0, -1).map(pt => `<circle cx="${F.x(pt.p).toFixed(1)}" cy="${F.y(pt.s).toFixed(1)}" r="2" fill="${colorAt(pt.s)}"/>`).join("")}
+    <circle cx="${F.x(last.p)}" cy="${F.y(last.s)}" r="4" fill="${hex}" stroke="#13181E" stroke-width="2"/>
     <g id="exCross" visibility="hidden"><line y1="${pad.t}" y2="${F.y(0)}" stroke="${CH.label}" stroke-width="1"/><circle r="4.5" fill="${CH.text}" stroke="#1B232C" stroke-width="2"/></g>
   </svg>`;
   gameGeo = {g, F, svg:el.querySelector("svg")};
@@ -1318,10 +1318,10 @@ function marginChart(g){
   return `<div class="chart-box"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Score margin over the game">
     <line x1="${padL}" x2="${W - padR}" y1="${y(0)}" y2="${y(0)}" stroke="#26303B" stroke-width="1"/>
     ${ticks.map(([p]) => `<line x1="${x(p)}" x2="${x(p)}" y1="${padT}" y2="${H - padB}" stroke="#1F2831" stroke-width="1"/>`).join("")}
-    <text x="${padL - 6}" y="${y(maxM) + 4}" fill="#8C98A6" font-size="10" text-anchor="end" font-family="Barlow Condensed, sans-serif">${esc(g.home.abbr)} +${lbl}</text>
-    <text x="${padL - 6}" y="${y(0) + 4}" fill="#8C98A6" font-size="10" text-anchor="end" font-family="Barlow Condensed, sans-serif">Tied</text>
-    <text x="${padL - 6}" y="${y(-maxM) + 4}" fill="#8C98A6" font-size="10" text-anchor="end" font-family="Barlow Condensed, sans-serif">${esc(g.away.abbr)} +${lbl}</text>
-    ${ticks.map(([p, t]) => `<text x="${x(p)}" y="${H - 6}" fill="#5C6876" font-size="10" text-anchor="end" font-family="Barlow Condensed, sans-serif">${t}</text>`).join("")}
+    <text x="${padL - 6}" y="${y(maxM) + 4}" fill="#8C98A6" font-size="10" text-anchor="end" font-family="Inter, -apple-system, sans-serif">${esc(g.home.abbr)} +${lbl}</text>
+    <text x="${padL - 6}" y="${y(0) + 4}" fill="#8C98A6" font-size="10" text-anchor="end" font-family="Inter, -apple-system, sans-serif">Tied</text>
+    <text x="${padL - 6}" y="${y(-maxM) + 4}" fill="#8C98A6" font-size="10" text-anchor="end" font-family="Inter, -apple-system, sans-serif">${esc(g.away.abbr)} +${lbl}</text>
+    ${ticks.map(([p, t]) => `<text x="${x(p)}" y="${H - 6}" fill="#5C6876" font-size="10" text-anchor="end" font-family="Inter, -apple-system, sans-serif">${t}</text>`).join("")}
     <path d="${d}" fill="none" stroke="${zone(g.score).c.startsWith("var") ? getComputedStyle(document.documentElement).getPropertyValue(zone(g.score).c.slice(4, -1)).trim() : "#E9EDF2"}" stroke-width="2" stroke-linejoin="round"/>
     <circle cx="${x(last.p)}" cy="${y(last.m)}" r="3.5" fill="#E9EDF2"/>
   </svg><div class="note">Score margin through the game. Built from period-by-period scores plus what Pulse has seen while open.</div></div>`;
