@@ -74,7 +74,7 @@ section.block{margin-top:30px}
 .sec-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
 .sec-title{font-family:var(--display);font-weight:800;font-size:26px;letter-spacing:.01em;text-transform:uppercase;margin:0;line-height:1}
 .count{font-family:var(--label);color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}
-.info{width:22px;height:22px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--muted);font-family:Georgia,serif;font-style:italic;font-weight:700;font-size:13px;line-height:1;cursor:pointer;display:inline-grid;place-items:center;padding:0}
+.info{flex:none;width:22px;height:22px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--muted);font-family:Georgia,serif;font-style:italic;font-weight:700;font-size:13px;line-height:1;cursor:pointer;display:inline-grid;place-items:center;padding:0}
 .info:hover{color:var(--text);border-color:var(--faint)}
 .legend{margin-left:auto;display:flex;gap:12px;flex-wrap:wrap;font-family:var(--label);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .legend i{display:inline-block;width:10px;height:3px;border-radius:2px;margin-right:5px;vertical-align:middle}
@@ -127,6 +127,40 @@ section.block{margin-top:30px}
 .tag{font-family:var(--label);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:4px;background:var(--surface-2);border:1px solid var(--line);color:var(--muted)}
 .tag.hot{color:var(--heat);border-color:color-mix(in srgb,var(--heat) 40%,var(--line))}
 .tag.red{color:var(--must);border-color:color-mix(in srgb,var(--must) 40%,var(--line))}
+
+/* Live chart card (matches the original Pulse layout) */
+.lc-card{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px 16px 14px}
+.lc-top{display:flex;align-items:center;gap:10px;margin:0 4px 10px}
+.lc-title{font-family:var(--display);font-weight:800;font-size:30px;letter-spacing:.01em;line-height:1;margin:0;white-space:nowrap}
+.lc-count{margin-left:auto;color:var(--muted);font-size:15px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.lc-empty{color:var(--muted);font-size:14px;padding:18px 4px 8px}
+.list-label{color:var(--muted);font-size:16px;margin:28px 0 12px}
+
+/* Game card */
+.grid.cards{grid-template-columns:repeat(auto-fill,minmax(min(100%,360px),1fr));gap:10px}
+.gc{display:grid;grid-template-columns:4px 1fr auto;gap:0 14px;align-items:stretch;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 14px 14px 13px;cursor:pointer;color:var(--text)}
+.gc:hover{background:var(--surface-2);border-color:var(--faint)}
+.gc .bar{border-radius:3px;background:var(--zc)}
+.gc .body{min-width:0;display:grid;gap:8px;align-content:center}
+.gc .tm{display:grid;grid-template-columns:24px 1fr auto;gap:12px;align-items:center}
+.gc .tm img,.gc .tm .ph{width:24px;height:24px;object-fit:contain}
+.gc .tm .ph{border-radius:50%;background:var(--line)}
+.gc .nm{font-size:17px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gc .nm .rk{font-family:var(--label);color:var(--muted);font-size:13px;font-weight:600;margin-right:5px}
+.gc .nm .rec{color:var(--faint);font-size:12px;margin-left:7px;font-variant-numeric:tabular-nums}
+.gc .sc{font-family:var(--display);font-weight:800;font-size:24px;line-height:1;color:#A9B3BF;font-variant-numeric:tabular-nums;min-width:2ch;text-align:right}
+.gc .tm.win .sc{color:var(--text)}
+.gc .tm.lose .nm,.gc .tm.lose .sc{color:var(--faint)}
+.gc .meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px;min-width:0}
+.gc .lgn{font-family:var(--label);font-weight:700;font-size:14px;letter-spacing:.03em;color:var(--faint)}
+.gc .st{color:var(--muted);font-size:15px;white-space:nowrap}
+.gc .net{font-family:var(--label);font-weight:600;font-size:13px;letter-spacing:.03em;color:#8EE0B2;background:rgba(47,191,113,.10);border:1px solid rgba(47,191,113,.35);border-radius:6px;padding:1px 7px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.gc .ex{display:grid;justify-items:center;align-content:center;min-width:56px;gap:1px}
+.gc .ex b{font-family:var(--display);font-weight:800;font-size:40px;line-height:.95;color:var(--zc);font-variant-numeric:tabular-nums}
+.gc .ex small{color:var(--muted);font-size:13px}
+.gc .ex .d{font-size:14px;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums;margin-top:3px;white-space:nowrap}
+.gc .ex .d.up{color:#6FD39B}
+.gc.pre .ex b{font-size:34px}
 
 /* Live situation line */
 .sit{display:flex;align-items:center;gap:7px;font-family:var(--label);font-size:13px;letter-spacing:.03em;color:var(--muted);min-width:0}
@@ -185,8 +219,7 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
 .lc-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:4px}
 .lc-head .note{margin-left:auto}
 .plot svg{display:block;width:100%;height:auto;touch-action:pan-y;cursor:crosshair}
-.lc .ser{opacity:.3;transition:opacity .15s}
-.lc .ser.ft{opacity:1}
+.lc .ser{transition:opacity .15s}
 .lc.hl .ser{opacity:.1}
 .lc.hl .ser.on{opacity:1}
 .lc.hl .lbl{opacity:.35}
@@ -202,6 +235,8 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
   .tagline{display:none}
   .legend{display:none}
   .bd-row{grid-template-columns:96px 1fr 40px}
+  .lc-title{font-size:26px}
+  .lc-count{font-size:14px}
   .score-line .big{font-size:36px}
 }
 @media (prefers-reduced-motion:reduce){.dot.live{animation:none}}
@@ -235,28 +270,23 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
   <div id="loading" class="loading">Loading scoreboards…</div>
 
   <section class="block" id="liveSec" hidden>
-    <div class="sec-head">
-      <h2 class="sec-title">Live excitement</h2>
-      <button class="info" id="infoBtn" type="button" aria-label="How the excitement number works">i</button>
-      <span class="count" id="liveCount"></span>
-      <div class="legend" aria-hidden="true">
-        <span><i style="background:var(--quiet)"></i>Quiet</span>
-        <span><i style="background:var(--comp)"></i>Competitive</span>
-        <span><i style="background:var(--heat)"></i>Heating up</span>
-        <span><i style="background:var(--must)"></i>Must-watch</span>
+    <div class="lc-card">
+      <div class="lc-top">
+        <h2 class="lc-title">Live excitement</h2>
+        <button class="info" id="infoBtn" type="button" aria-label="How the excitement number works">i</button>
+        <span class="lc-count" id="liveCount"></span>
       </div>
-    </div>
-    <div class="chart-box lc-box" id="liveChartBox" hidden>
-      <div class="lc-head"><p class="eyebrow">Excitement through the game</p><span class="note" id="liveHint">Hover a line to see the game. Click it to open.</span></div>
       <div class="plot lc" id="liveChart"></div>
+      <div class="lc-empty" id="liveEmpty" hidden></div>
       <div class="tip" id="liveTip" hidden></div>
     </div>
-    <div class="grid" id="liveGrid"></div>
+    <p class="list-label" id="liveLabel">Live now, hottest first</p>
+    <div class="grid cards" id="liveGrid"></div>
   </section>
 
   <section class="block" id="todaySec" hidden>
     <div class="sec-head"><h2 class="sec-title"><button class="tog" type="button" data-tog="today" aria-expanded="true"><span class="chev" aria-hidden="true"></span>Today</button></h2><span class="count" id="todayCount"></span></div>
-    <div class="grid" id="todayGrid"></div>
+    <div class="grid cards" id="todayGrid"></div>
   </section>
 
   <section class="block" id="upSec" hidden>
@@ -266,7 +296,7 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
 
   <section class="block" id="finSec" hidden>
     <div class="sec-head"><h2 class="sec-title"><button class="tog" type="button" data-tog="fin" aria-expanded="true"><span class="chev" aria-hidden="true"></span>Final</button></h2><span class="count" id="finCount"></span></div>
-    <div class="grid" id="finGrid"></div>
+    <div class="grid cards" id="finGrid"></div>
   </section>
 </main>
 
@@ -365,8 +395,6 @@ const store = {
 
 let selected = new Set(store.get("pulse.leagues", LEAGUES.map(l => l.id)));
 let history = store.get("pulse.hist", {});       // gameId -> {ts, pts:[{p,m}]}
-const lastScore = new Map();                      // gameId -> previous excitement
-const deltaMap = new Map();                       // gameId -> change since last refresh
 let games = [];                                    // parsed + rated
 let leagueState = {};                             // id -> {ok, n, live}
 let usingSample = false;
@@ -390,6 +418,16 @@ function zone(v){
   if (v >= 60) return {c:"var(--heat)",  hex:"#FF8A3D", name:"Heating up"};
   if (v >= 40) return {c:"var(--comp)",  hex:"#2FBF71", name:"Competitive"};
   return            {c:"var(--quiet)", hex:"#4C8DFF", name:"Quiet"};
+}
+// Continuous excitement color: teal-blue (quiet) → green → olive → orange → red (must-watch).
+const SCALE = [[0,[66,133,214]],[22,[64,170,170]],[38,[86,190,140]],[52,[150,194,100]],[66,[214,170,84]],[80,[240,136,74]],[92,[255,92,80]],[100,[255,71,87]]];
+function colorAt(v){
+  v = clamp(v, 0, 100);
+  for (let i = 1; i < SCALE.length; i++){
+    const [b, cb] = SCALE[i], [a, ca] = SCALE[i - 1];
+    if (v <= b){ const t = (v - a) / (b - a); return "rgb(" + ca.map((c, k) => Math.round(c + (cb[k] - c) * t)).join(",") + ")"; }
+  }
+  return "rgb(255,71,87)";
 }
 // Linear below 70, then an asymptote: 100 is nearly unreachable.
 function compress(x){ return x <= 70 ? x : 70 + 30 * (1 - Math.exp(-(x - 70) / 28)); }
@@ -485,6 +523,7 @@ function parseEvent(ev, L){
     date: ev.date, home, away,
     odds: parseOdds(comp, home, away, L),
     note, conf: !!comp.conferenceCompetition,
+    group: comp.groups && (comp.groups.shortName || comp.groups.name) || "",
     postseason: ev.season && ev.season.type === 3,
     preseason: ev.season && ev.season.type === 1,
     venue: comp.venue && comp.venue.fullName || "",
@@ -782,15 +821,53 @@ function buildCurve(g){
   pts.push({p:g.p, s:g.score, h:g.home.score, a:g.away.score});
   return pts;
 }
+/* Spikes cool off instead of vanishing: the shown number decays toward the raw one. */
+const GLOW_MIN = 9;   // minutes for a spike to fade about two-thirds of the way back
+function afterglow(g){
+  g.glow = 0;
+  if (g.state !== "in") return;
+  const h = history[g.id];
+  if (!h) return;
+  const now = Date.now(), prev = h.shown;
+  if (prev && now - prev.t < 3600e3 && prev.v > g.score){
+    const held = g.score + (prev.v - g.score) * Math.exp(-(now - prev.t) / 60000 / GLOW_MIN);
+    const v = Math.round(held);
+    g.glow = v - g.score;
+    g.score = v;
+  }
+  h.shown = {v:g.score, t:now};
+}
 function recordExcitement(g){
   if (g.state !== "in") return;
   const h = history[g.id] || (history[g.id] = {ts:Date.now(), pts:[]});
   const ex = h.ex || (h.ex = []);
-  const last = ex[ex.length - 1];
-  if (!last || last.s !== g.score || g.p - last.p > 0.01){
-    ex.push({p:+g.p.toFixed(4), s:g.score, h:g.home.score, a:g.away.score});
-    if (ex.length > 300) ex.splice(0, ex.length - 300);
+  const last = ex[ex.length - 1], now = Date.now();
+  if (!last || last.s !== g.score || g.p - last.p > 0.01 || now - (last.t || 0) > 120e3){
+    ex.push({p:+g.p.toFixed(4), s:g.score, h:g.home.score, a:g.away.score, t:now});
+    if (ex.length > 700) ex.splice(0, ex.length - 700);
   }
+}
+/* Change over roughly the last ten minutes. */
+function recentDelta(g){
+  if (g.state !== "in") return null;
+  const ex = (history[g.id] && history[g.id].ex || []).filter(x => x.t);
+  if (ex.length < 2) return null;
+  const target = Date.now() - 10 * 60e3;
+  let ref = ex[0];
+  for (const x of ex) if (x.t <= target) ref = x;
+  return g.score - ref.s;
+}
+/* Wall-clock time for each point of a live game's curve (estimated where Pulse wasn't watching). */
+const MINUTES = {nfl:190, ncaaf:210, mlb:165, nba:140, wnba:120, ncaam:125, nhl:150};
+function timeCurve(g){
+  if (!g.curve) return null;
+  const L = LG[g.lg], now = Date.now();
+  let start = Date.parse(g.date);
+  if (isNaN(start) || start > now) start = now - 60e3;
+  const full = (MINUTES[g.lg] || 115) * 60e3;
+  const span = g.p > 0.1 ? (now - start) / g.p : full;
+  return g.curve.map((pt, i) => ({...pt, t: i === g.curve.length - 1 ? now : pt.t || start + pt.p * span}))
+    .sort((a, b) => a.t - b.t);
 }
 
 /* ---------- Fetching ---------- */
@@ -853,16 +930,11 @@ function ingest(list){
     g.p = p; noteScoring(g);
   }
   pruneHistory();
-  deltaMap.clear();
   games = list.map(rate);
+  for (const g of games) afterglow(g);
   for (const g of games) recordExcitement(g);
   store.set("pulse.hist", history);
-  for (const g of games) g.curve = buildCurve(g);
-  for (const g of games){
-    const prev = lastScore.get(g.id);
-    if (prev != null && g.state === "in") deltaMap.set(g.id, g.score - prev);
-    lastScore.set(g.id, g.score);
-  }
+  for (const g of games){ g.curve = buildCurve(g); g.delta = recentDelta(g); }
   render();
 }
 
@@ -927,21 +999,31 @@ function sitHTML(g){
   const t = sitText(g);
   return t ? `<div class="sit${t.hot ? " rz" : ""}">${t.html}</div>` : "";
 }
+function cardTeam(t, g, other){
+  const showScore = g.state !== "pre";
+  const cls = g.state === "post" ? (t.score > other.score ? " win" : t.score < other.score ? " lose" : "") : "";
+  return `<div class="tm${cls}">${logoHTML(t, 24)}
+    <span class="nm">${t.rank ? `<span class="rk">${t.rank}</span>` : ""}${esc(t.name)}${!showScore && t.record ? `<span class="rec">${esc(t.record)}</span>` : ""}</span>
+    <span class="sc">${showScore ? t.score : ""}</span></div>`;
+}
 function card(g){
-  const z = zone(g.score);
   const L = LG[g.lg];
-  const d = deltaMap.get(g.id);
-  const delta = d && Math.abs(d) >= 2 ? `<span class="delta ${d > 0 ? "up" : "down"}">${d > 0 ? "▲" : "▼"} ${Math.abs(d)}</span>` : "";
-  const tags = g.tags.slice(0, 4).map(([t, c]) => `<span class="tag ${c}">${esc(t)}</span>`).join("");
-  return `<button class="game" type="button" data-id="${esc(g.id)}" style="--z:${z.c};--v:${g.score}" aria-label="${esc(g.away.name)} at ${esc(g.home.name)}, excitement ${g.score}">
-    <div class="dial${g.state === "pre" ? " pre" : ""}"><b>${g.score}</b>${g.state === "pre" ? "<small>hype</small>" : ""}</div>
-    <div class="g-main">
-      <div class="g-meta"><span class="lg">${esc(L.label)}</span><span class="st${g.state === "in" ? " live" : ""}">${esc(statusText(g))}</span>${delta}</div>
-      ${teamRow(g.away, g, g.home)}
-      ${teamRow(g.home, g, g.away)}
-      ${sitHTML(g)}
-      ${tags ? `<div class="tags">${tags}</div>` : ""}
+  const col = g.preseason && g.state === "pre" ? "var(--faint)" : colorAt(g.score);
+  let d = "";
+  if (g.state === "in" && g.delta != null){
+    const n = g.delta;
+    d = n >= 3 ? `<span class="d up">▲ ${n}</span>` : n <= -3 ? `<span class="d">▼ ${-n}</span>` : `<span class="d">— ${Math.abs(n)}</span>`;
+  }
+  const word = g.state === "pre" ? "hype" : g.state === "post" ? "final" : "now";
+  const lg = esc(L.label) + (g.group && /^ncaa/.test(g.lg) ? " · " + esc(g.group) : "");
+  return `<button class="gc${g.state === "pre" ? " pre" : ""}" type="button" data-id="${esc(g.id)}" style="--zc:${col}" aria-label="${esc(g.away.name)} at ${esc(g.home.name)}, excitement ${g.score}">
+    <span class="bar"></span>
+    <div class="body">
+      ${cardTeam(g.away, g, g.home)}
+      ${cardTeam(g.home, g, g.away)}
+      <div class="meta"><span class="lgn">${lg}</span><span class="st">${esc(statusText(g))}</span>${g.broadcast ? `<span class="net">${esc(g.broadcast)}</span>` : ""}</div>
     </div>
+    <div class="ex"><b>${g.score}</b><small>${word}</small>${d}</div>
   </button>`;
 }
 
@@ -974,9 +1056,11 @@ function render(){
   const upList = up.filter(g => dayKey(g) > todayKey && new Date(g.date) <= week).sort(byDay);
 
   $("#liveSec").hidden = false;
-  $("#liveGrid").innerHTML = live.length ? live.map(card).join("") :
-    `<div class="empty">${selected.size ? "No live games in your leagues right now." : "Pick a league above to see games."}${fin.length || upList.length || todayList.length ? " Finished and upcoming games are below." : ""}</div>`;
-  $("#liveCount").textContent = live.length ? live.length + " live" : "";
+  $("#liveGrid").innerHTML = live.map(card).join("");
+  $("#liveLabel").hidden = !live.length;
+  $("#liveEmpty").hidden = !!live.length;
+  $("#liveEmpty").textContent = (selected.size ? "No live games in your leagues right now." : "Pick a league above to see games.") + (fin.length || upList.length || todayList.length ? " Finished and upcoming games are below." : "");
+  $("#liveCount").textContent = live.length ? live.length + " game" + (live.length > 1 ? "s" : "") + " live" : "";
   liveList = live;
   drawLive();
 
@@ -1061,69 +1145,90 @@ function valueAt(pts, p){
 }
 const scoreText = (g, pt) => `${esc(g.away.abbr || g.away.name)} ${pt.a}–${pt.h} ${esc(g.home.abbr || g.home.name)}`;
 
-/* Live overview: one line per live game, across its own game clock. */
+/* Live overview: every live game's excitement against the clock on the wall. */
 let liveList = [], liveGeo = null;
+const timeFmt = t => new Date(t).toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});
 function drawLive(){
-  const box = $("#liveChartBox"), el = $("#liveChart");
-  const series = liveList.filter(g => g.curve && g.curve.length > 1);
-  box.hidden = !series.length;
-  if (!series.length){ liveGeo = null; return; }
-  const W = Math.max(280, Math.round(el.clientWidth || 600)), narrow = W < 520;
-  const H = narrow ? 210 : 250;
-  const pad = {l:28, r:narrow ? 66 : 100, t:10, b:22};
-  const F = chartFrame(W, H, pad, [[0,"Start"],[.25,"¼"],[.5,"Half"],[.75,"¾"],[1,"End"]]);
-  const feat = new Set(series.slice(0, 4).map(g => g.id));
-  const order = [...series].reverse();
-  const lines = order.map(g => {
-    const z = zone(g.score), last = g.curve[g.curve.length - 1];
-    return `<g class="ser${feat.has(g.id) ? " ft" : ""}" data-id="${esc(g.id)}">
-      <path d="${linePath(g.curve, F.x, F.y)}" fill="none" stroke="${z.hex}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-      <circle cx="${F.x(last.p)}" cy="${F.y(last.s)}" r="4" fill="${z.hex}" stroke="#1B232C" stroke-width="2"/></g>`;
-  }).join("");
-  // Direct labels for the top four, in the right gutter, nudged apart.
-  const labs = series.filter(g => feat.has(g.id)).map(g => ({g, y:F.y(g.score)})).sort((a, b) => a.y - b.y);
-  for (let i = 1; i < labs.length; i++) if (labs[i].y - labs[i - 1].y < 14) labs[i].y = labs[i - 1].y + 14;
-  const over = labs.length ? labs[labs.length - 1].y - (H - pad.b) : 0;
+  const el = $("#liveChart");
+  const series = liveList.map(g => ({g, pts: timeCurve(g)})).filter(x => x.pts && x.pts.length > 1);
+  el.hidden = !series.length;
+  if (!series.length){ el.innerHTML = ""; liveGeo = null; return; }
+  const W = Math.max(280, Math.round(el.clientWidth || 600)), narrow = W < 560;
+  const H = Math.round(clamp(W * 0.95, 300, 400));
+  const pad = {l:24, r:narrow ? 122 : 210, t:6, b:22};
+  const now = Date.now();
+  const t0 = Math.min(...series.map(x => x.pts[0].t)), t1 = now;
+  const x = t => pad.l + (t - t0) / Math.max(1, t1 - t0) * (W - pad.l - pad.r);
+  const y = v => pad.t + (1 - v / 100) * (H - pad.t - pad.b);
+  const pw = W - pad.l - pad.r, fs = narrow ? 7.5 : 10;
+  const bands = [[80,100,"#FF4757","Must-watch"],[60,80,"#FF8A3D","Heating up"],[40,60,"#2FBF71","Competitive"],[0,40,"#4C8DFF","Quiet"]];
+  let svg = `<defs><linearGradient id="lcGrad" gradientUnits="userSpaceOnUse" x1="0" y1="${y(0)}" x2="0" y2="${y(100)}">${SCALE.map(([v, c]) => `<stop offset="${v / 100}" stop-color="rgb(${c.join(",")})"/>`).join("")}</linearGradient></defs>`;
+  svg += bands.map(([a, b, c, n]) => `<rect x="${pad.l}" y="${y(b)}" width="${pw}" height="${y(a) - y(b)}" fill="${c}" fill-opacity=".07"/>
+    <text x="${pad.l + 5}" y="${y(b) + fs + 4}" fill="${c}" fill-opacity=".75" font-size="${fs}" font-family="${CH.font}">${n}</text>`).join("");
+  svg += [0, 20, 40, 60, 80, 100].map(v => `<line x1="${pad.l}" x2="${pad.l + pw}" y1="${y(v)}" y2="${y(v)}" stroke="#1F2831" stroke-width="1"/>
+    <text x="${pad.l - 5}" y="${y(v) + 3}" fill="${CH.tick}" font-size="${fs}" text-anchor="end" font-family="${CH.font}">${v}</text>`).join("");
+  const nT = W < 420 ? 3 : narrow ? 4 : 7;
+  for (let i = 0; i <= nT; i++){
+    const t = t0 + (t1 - t0) * i / nT;
+    svg += `<text x="${x(t)}" y="${H - 6}" fill="${CH.tick}" font-size="${fs}" text-anchor="${i === 0 ? "start" : i === nT ? "end" : "middle"}" font-family="${CH.font}">${timeFmt(t)}</text>`;
+  }
+  svg += `<rect x="${pad.l}" y="${pad.t}" width="${pw}" height="${y(0) - pad.t}" fill="none" stroke="#26303B"/>`;
+  // Lines (coolest first so the hottest sit on top).
+  for (const {g, pts} of [...series].reverse()){
+    const d = pts.map((p, i) => (i ? "L" : "M") + x(p.t).toFixed(1) + " " + y(p.s).toFixed(1)).join(" ");
+    const last = pts[pts.length - 1];
+    svg += `<g class="ser" data-id="${esc(g.id)}"><path d="${d}" fill="none" stroke="url(#lcGrad)" stroke-width="${narrow ? 1.3 : 1.7}" stroke-linejoin="round" stroke-linecap="round"/>
+      <circle cx="${x(last.t)}" cy="${y(last.s)}" r="${narrow ? 2.6 : 3.2}" fill="${colorAt(last.s)}"/></g>`;
+  }
+  // End labels for every game, nudged apart.
+  const gap = fs + 3.5;
+  const labs = series.map(({g, pts}) => ({g, y: y(pts[pts.length - 1].s)})).sort((a, b) => a.y - b.y);
+  for (let i = 1; i < labs.length; i++) if (labs[i].y - labs[i - 1].y < gap) labs[i].y = labs[i - 1].y + gap;
+  const over = labs.length ? labs[labs.length - 1].y - (y(0) - 2) : 0;
   if (over > 0) labs.forEach(l => l.y -= over);
-  const lx = W - pad.r + 8;
-  const labels = labs.map(({g, y}) => `<text class="lbl" data-id="${esc(g.id)}" x="${lx}" y="${y + 4}" fill="${CH.text}" font-size="12" font-weight="600" font-family="${CH.font}">${esc(g.away.abbr || g.away.name)}–${esc(g.home.abbr || g.home.name)}${narrow ? "" : ` <tspan fill="${CH.label}" font-weight="500">${g.score}</tspan>`}</text>`).join("");
-  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Excitement of each live game from start to now">${F.bg}${lines}${labels}</svg>`;
-  liveGeo = {F, series, svg:el.querySelector("svg")};
-  $("#liveHint").textContent = matchMedia("(hover:hover)").matches ? "Hover a line to see the game. Click it to open." : "Tap a line to open the game.";
+  const lx = pad.l + pw + 6;
+  svg += labs.map(({g, y: ly}) => {
+    const ab = t => esc(t.abbr || t.name);
+    return `<text class="lbl" data-id="${esc(g.id)}" x="${lx}" y="${ly + fs * 0.35}" font-size="${fs}" font-family="${CH.font}">
+      <tspan fill="${colorAt(g.score)}" font-weight="700">${g.score}</tspan>
+      <tspan fill="${CH.text}" font-weight="700"> ${ab(g.away)} ${g.away.score}-${g.home.score} ${ab(g.home)}</tspan>
+      <tspan fill="${CH.tick}" font-size="${fs * 0.85}"> ${esc(statusText(g))}</tspan></text>`;
+  }).join("");
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Excitement of each live game over time">${svg}</svg>`;
+  liveGeo = {x, y, t0, t1, series, svg: el.querySelector("svg")};
 }
 function nearestLive(e){
   if (!liveGeo) return null;
-  const {F, series, svg} = liveGeo, pt = svgPoint(svg, e);
-  let best = null, bd = 22;
-  for (const g of series){
-    const c = g.curve;
+  const {x, y, series, svg} = liveGeo, pt = svgPoint(svg, e);
+  let best = null, bd = 20;
+  for (const S of series){
+    const c = S.pts;
     for (let i = 1; i < c.length; i++){
-      const d = segDist(pt.sx, pt.sy, F.x(c[i - 1].p), F.y(c[i - 1].s), F.x(c[i].p), F.y(c[i].s));
-      if (d < bd){ bd = d; best = g; }
+      const d = segDist(pt.sx, pt.sy, x(c[i - 1].t), y(c[i - 1].s), x(c[i].t), y(c[i].s));
+      if (d < bd){ bd = d; best = S; }
     }
-    const l = c[c.length - 1], d = Math.hypot(pt.sx - F.x(l.p), pt.sy - F.y(l.s));
-    if (d < bd){ bd = d; best = g; }
   }
-  return best && {g:best, pt};
+  return best && {S: best, pt};
 }
 function hoverLive(e){
   const hit = nearestLive(e), el = $("#liveChart"), tip = $("#liveTip");
   el.classList.toggle("hl", !!hit);
   el.querySelectorAll(".on").forEach(n => n.classList.remove("on"));
   if (!hit){ tip.hidden = true; return; }
-  const {g, pt} = hit, F = liveGeo.F;
+  const {S: {g, pts}, pt} = hit, {x, t0, t1} = liveGeo;
   el.querySelectorAll(`[data-id="${CSS.escape(g.id)}"]`).forEach(n => n.classList.add("on"));
-  const p = clamp((pt.sx - F.x(0)) / (F.x(1) - F.x(0)), 0, g.p);
-  const at = valueAt(g.curve, p), now = g.curve[g.curve.length - 1];
+  const tm = t0 + (pt.sx - x(t0)) / (x(t1) - x(t0)) * (t1 - t0);
+  let at = pts[0]; for (const q of pts) if (Math.abs(q.t - tm) < Math.abs(at.t - tm)) at = q;
+  const now = pts[pts.length - 1];
   tip.innerHTML = `<b>${esc(g.away.name)} at ${esc(g.home.name)}</b> <span class="tm">· ${esc(LG[g.lg].label)}</span><br>
-    <span class="tz" style="background:${zone(g.score).hex}"></span>Now <b>${g.score}</b> <span class="tm">· ${esc(statusText(g))} · ${scoreText(g, now)}</span>
-    ${at !== now ? `<br><span class="tm">${esc(momentLabel(g, at.p))}: ${at.s} · ${scoreText(g, at)}</span>` : ""}`;
-  const r = $("#liveChartBox").getBoundingClientRect();
-  placeTip(tip, $("#liveChartBox"), pt.px - r.left, pt.py - r.top);
+    <span class="tz" style="background:${colorAt(g.score)}"></span>Now <b>${g.score}</b> <span class="tm">· ${esc(statusText(g))} · ${scoreText(g, now)}</span>
+    ${at !== now ? `<br><span class="tm">${timeFmt(at.t)}: ${at.s} · ${scoreText(g, at)}</span>` : ""}`;
+  const box = $(".lc-card"), r = box.getBoundingClientRect();
+  placeTip(tip, box, pt.px - r.left, pt.py - r.top);
 }
 $("#liveChart").addEventListener("pointermove", hoverLive);
 $("#liveChart").addEventListener("pointerleave", () => { $("#liveChart").classList.remove("hl"); $("#liveTip").hidden = true; });
-$("#liveChart").addEventListener("click", e => { const hit = nearestLive(e); if (hit) openGame(hit.g.id); });
+$("#liveChart").addEventListener("click", e => { const hit = nearestLive(e); if (hit) openGame(hit.S.g.id); });
 
 /* Single game: excitement from pregame hype to now. */
 let gameGeo = null;
@@ -1248,6 +1353,7 @@ function fillGame(g){
     rows += barRow("OT / crunch", P.otB + P.crunch, 21, f(P.otB + P.crunch), "var(--must)");
     rows += barRow("Right now", P.mo, 18, f(P.mo), "var(--must)");
     rows += barRow("Fresh score", P.jo, 12, f(P.jo), "var(--must)");
+    if (g.glow) rows += barRow("Cooling off", g.glow, 30, f(g.glow), "var(--heat)");
     rows += barRow("Stakes", Math.max(0, P.stakes + 7), 14, f(P.stakes));
     rows += barRow("Live vs hype", P.w, 1, Math.round(P.w * 100) + "%");
   }
@@ -1379,7 +1485,7 @@ document.addEventListener("click", e => {
   }
   const mb = e.target.closest("[data-more]");
   if (mb){ const k = mb.dataset.more; showAll.has(k) ? showAll.delete(k) : showAll.add(k); render(); return; }
-  const g = e.target.closest(".game");
+  const g = e.target.closest(".gc");
   if (g) { openGame(g.dataset.id); return; }
   if (e.target.closest("[data-close]")) { const d = e.target.closest("dialog"); if (d) d.close(); return; }
   if (e.target.tagName === "DIALOG") e.target.close();   // click on backdrop
