@@ -30,8 +30,9 @@ The empty `.nojekyll` file tells GitHub Pages to serve the files as they are.
   - Overtime, and crunch time in a one-score game.
   - Stakes, which come from the hype score.
   - Right now: the live situation. Baseball uses runners, outs, the count and whether the tying or winning run is on base or at the plate. Football uses red zone, 4th down and the two-minute drill when the team with the ball is within one score. Soccer uses red cards.
-  - Fresh scores: a score jolts the number, more for a go-ahead or tying score, then fades over about five minutes.
-- **Hype anchor:** every game starts at its pregame hype score, built from rankings, rivalry and how close the line is. Over the first third of the game, live play takes over from that number.
+  - Fresh scores: a score jolts the number, more for a go-ahead or tying score, then cools off over several minutes.
+  - Momentum: the margin's movement over the last ~12 real minutes. Closing the gap or flipping the lead raises the number; a growing lead lowers it.
+- **Hype anchor:** every game starts at its pregame hype score, built from rankings, rivalry and how close the line is. Live play takes over from that number within roughly the first 15% of the game.
 - **Preseason:** preseason games are tagged and get a hype score of 0, so they rank last in Today and Coming up and start from nothing once live.
 - **Zones:**
   - 0–40, blue: quiet
@@ -50,7 +51,7 @@ All of these are in the `<script>` section of `index.html`:
   - `pace`: typical combined score
   - `one`: what counts as a one-score game
   - period lengths
-- `RIVALS`: rivalry pairs, listed by ESPN team abbreviation.
+- `RIVALS`: rivalry pairs, listed by ESPN team abbreviation. `RIVAL_NOTE` also catches rivalry names in ESPN's game notes.
 - `hypeScore()`: the pregame hype formula.
 - `rate()`: the live excitement formula and its boosts.
 - `moment()`: the live-situation boosts (runners, red zone, 4th down and so on).

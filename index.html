@@ -158,7 +158,12 @@ section.block{margin-top:26px}
 .gc{display:grid;grid-template-columns:3px 1fr auto;column-gap:13px;width:100%;min-height:99px;text-align:left;background:#13181E;border:1px solid #262A35;border-radius:12px;padding:13px 14px 6px 13px;cursor:pointer;color:#F4F7FD;font-family:var(--body)}
 .gc:hover{background:#171C23}
 .gc .bar{border-radius:2px;background:var(--zc);margin:-1px 0 4px}
-.gc .body{min-width:0;display:grid;grid-template-rows:22px 22px 24px;row-gap:5px;align-content:start}
+.gc .body{min-width:0;display:grid;grid-auto-rows:auto;grid-template-rows:22px 22px 24px;row-gap:5px;align-content:start}
+.gc .flags{display:flex;flex-wrap:wrap;gap:5px;margin:1px 0 6px}
+.gc .flag{font-size:9.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;line-height:12px;padding:2px 6px;border-radius:5px;border:1px solid #2C313A;color:#88909A}
+.gc .flag.hot{color:#E9A06E;border-color:#4A3424;background:#1C1612}
+.gc .flag.red{color:#F08A90;border-color:#4C262B;background:#1E1215}
+.gc .flag.riv{color:#D7B46A;border-color:#47391F;background:#1B1710}
 .gc .tm{display:grid;grid-template-columns:17px 1fr auto;gap:9px;align-items:center}
 .gc .tm img,.gc .tm .ph{width:17px;height:17px;object-fit:contain}
 .gc .tm .ph{border-radius:50%;background:#262A35}
@@ -337,10 +342,11 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
         <li><b>Overtime</b> and <b>crunch time</b> in a one-score game.</li>
         <li><b>Stakes</b>: the pregame hype score below.</li>
         <li><b>Right now</b>: the live situation. In baseball: runners on, outs, the count, and whether the tying or winning run is on base or at the plate. In football: red zone, 4th down and the two-minute drill when the team with the ball is within one score. In soccer: red cards.</li>
-        <li><b>Fresh scores</b>: a score jolts the number, more for a go-ahead or tying score, then fades over about five minutes.</li>
+        <li><b>Fresh scores</b>: a score jolts the number, more for a go-ahead or tying score, then cools off over the next several minutes.</li>
+        <li><b>Momentum</b>: a team closing the gap or flipping the lead over the last ~12 minutes pushes the number up; a lead that keeps growing pulls it down.</li>
       </ul>
       <h4>Where it starts</h4>
-      <p>Every game opens at its <b>hype score</b>: rankings, rivalry, and how close the line is. Over the first third of the game that anchor hands off to what is actually happening on the field. Preseason games are tagged and get no hype at all.</p>
+      <p>Every game opens at its <b>hype score</b>: rankings, rivalry, and how close the line is. Within the first few minutes of play that anchor hands off to what is actually happening on the field. Preseason games are tagged and get no hype at all.</p>
       <h4>The zones</h4>
       <ul>
         <li><span class="z" style="background:var(--quiet)"></span><b>0–40</b> blue: quiet</li>
@@ -385,18 +391,26 @@ const LEAGUES = [
 const LG = Object.fromEntries(LEAGUES.map(l => [l.id, l]));
 
 /* Rivalries by ESPN abbreviation. Unmatched pairs simply never fire. */
+const CFB_RIVALS = [["MICH","OSU"],["AUB","ALA"],["TEX","OU"],["UGA","FLA"],["USC","ND"],["ARMY","NAVY"],["CLEM","SC"],["LSU","ALA"],["ORE","WASH"],["ORE","ORST"],["WASH","WSU"],["MISS","MSST"],["TENN","ALA"],["FSU","FLA"],["FSU","MIA"],["MIA","FLA"],["TEX","TA&M"],["MINN","WIS"],["MINN","IOWA"],["IOWA","NEB"],["UGA","GT"],["UGA","AUB"],["STAN","CAL"],["BYU","UTAH"],["IOWA","ISU"],["KU","KSU"],["KU","MIZ"],["UCLA","USC"],["MICH","MSU"],["IU","PUR"],["ILL","NU"],["PITT","WVU"],["UVA","VT"],["UNC","DUKE"],["UNC","NCST"],["UK","LOU"],["UK","TENN"],["OU","OKST"],["BAY","TCU"],["TEX","TTU"],["ARIZ","ASU"],["COLO","NEB"],["COLO","UTAH"],["ND","NAVY"],["ND","MICH"],["ARMY","AF"],["NAVY","AF"],["ARK","LSU"],["ARK","MIZ"],["VAN","TENN"],["OSU","PSU"],["PSU","PITT"],["CIN","LOU"],["HOU","RICE"],["MEM","UAB"],["APP","MRSH"],["BSU","FRES"],["SDSU","FRES"],["UTAH","USU"],["HAW","BSU"],["WMU","CMU"],["CMU","EMU"],["OHIO","M-OH"],["BUFF","AKR"],["TOL","BGSU"],["NAVY","SMU"],["TLSA","SMU"],["UCF","USF"]];
 const RIVALS = {
-  nfl:[["GB","CHI"],["DAL","PHI"],["DAL","WSH"],["NYG","DAL"],["KC","LV"],["BAL","PIT"],["CLE","PIT"],["NE","NYJ"],["SF","SEA"],["SF","DAL"],["BUF","MIA"],["DEN","KC"]],
-  ncaaf:[["MICH","OSU"],["AUB","ALA"],["TEX","OU"],["UGA","FLA"],["USC","ND"],["ARMY","NAVY"],["CLEM","SC"],["LSU","ALA"],["ORE","WASH"],["MISS","MSST"],["TENN","ALA"],["FSU","FLA"],["TEX","TA&M"],["MINN","WIS"],["UGA","GT"],["STAN","CAL"],["BYU","UTAH"],["IOWA","ISU"],["KU","KSU"],["UCLA","USC"]],
-  mlb:[["NYY","BOS"],["LAD","SF"],["CHC","STL"],["CHC","CHW"],["NYY","NYM"],["LAD","SD"]],
-  nba:[["LAL","BOS"],["LAL","LAC"],["NY","BKN"],["BOS","PHI"],["GS","LAL"]],
-  nhl:[["TOR","MTL"],["EDM","CGY"],["PIT","PHI"],["NYR","NYI"],["BOS","MTL"],["CHI","DET"]],
-  epl:[["ARS","TOT"],["LIV","EVE"],["MAN","MNC"],["LIV","MAN"],["ARS","CHE"]],
-  laliga:[["RMA","BAR"],["ATM","RMA"],["SEV","BET"]],
-  seriea:[["INT","MIL"],["JUV","INT"],["ROMA","LAZ"]],
-  bund:[["BVB","S04"],["BAY","BVB"]],
-  ligue1:[["PSG","MAR"]],
+  nfl:[["GB","CHI"],["GB","MIN"],["GB","DET"],["CHI","MIN"],["CHI","DET"],["DET","MIN"],["DAL","PHI"],["DAL","WSH"],["NYG","DAL"],["NYG","PHI"],["PHI","WSH"],["KC","LV"],["DEN","LV"],["DEN","KC"],["BAL","PIT"],["CLE","PIT"],["CIN","PIT"],["BAL","CLE"],["NE","NYJ"],["BUF","MIA"],["NE","BUF"],["SF","SEA"],["SF","DAL"],["SF","LAR"],["ATL","NO"],["TB","NO"],["HOU","TEN"],["IND","TEN"]],
+  ncaaf: CFB_RIVALS,
+  ncaam: CFB_RIVALS.concat([["DUKE","UNC"],["KU","MIZ"],["UK","LOU"],["IND","PUR"],["NOVA","PROV"],["GTWN","SYR"],["ARIZ","UCLA"],["GONZ","SMC"],["CIN","XAV"]]),
+  mlb:[["NYY","BOS"],["LAD","SF"],["CHC","STL"],["CHC","CHW"],["NYY","NYM"],["LAD","SD"],["NYM","PHI"],["ATL","NYM"],["CHC","MIL"],["LAD","LAA"],["OAK","SF"],["ATH","SF"],["BAL","WSH"],["TEX","HOU"],["CLE","DET"],["NYY","TOR"]],
+  nba:[["LAL","BOS"],["LAL","LAC"],["NY","BKN"],["BOS","PHI"],["GS","LAL"],["BOS","NY"],["CHI","DET"],["MIA","BOS"],["DAL","SA"],["HOU","SA"],["PHX","LAL"]],
+  wnba:[["NY","LV"],["CHI","IND"],["CONN","NY"],["SEA","LA"],["MIN","LA"]],
+  nhl:[["TOR","MTL"],["EDM","CGY"],["PIT","PHI"],["NYR","NYI"],["BOS","MTL"],["CHI","DET"],["NYR","NJ"],["NYI","NJ"],["PIT","WSH"],["TOR","OTT"],["MTL","OTT"],["TOR","BOS"],["CHI","STL"],["VAN","CGY"],["VAN","EDM"],["LA","ANA"],["COL","DET"],["TB","FLA"],["DAL","STL"],["NYR","PHI"]],
+  epl:[["ARS","TOT"],["LIV","EVE"],["MAN","MNC"],["LIV","MAN"],["ARS","CHE"],["CHE","TOT"],["NEW","SUN"],["AVL","WOL"],["CRY","BHA"],["WHU","TOT"],["MAN","LEE"],["ARS","MAN"]],
+  laliga:[["RMA","BAR"],["ATM","RMA"],["SEV","BET"],["ATH","RSO"],["VAL","VIL"],["BAR","ESP"]],
+  seriea:[["INT","MIL"],["JUV","INT"],["ROMA","LAZ"],["JUV","TOR"],["GEN","SAMP"],["NAP","ROMA"],["JUV","MIL"]],
+  bund:[["BVB","S04"],["BAY","BVB"],["BAY","M05"],["KOL","M05"],["HSV","SVW"]],
+  ligue1:[["PSG","MAR"],["LYON","STE"],["LYON","MAR"],["NICE","MON"]],
+  ucl:[["RMA","BAR"],["ATM","RMA"],["INT","MIL"]],
+  mls:[["LA","LAFC"],["SEA","POR"],["NYC","NY"],["ORL","MIA"],["CLB","CIN"],["SEA","VAN"],["POR","VAN"]],
 };
+// ESPN often names the rivalry in the game note ("Red River Rivalry", "Iron Bowl"...).
+const RIVAL_NOTE = /rivalr|red river|iron bowl|egg bowl|apple cup|bedlam|backyard brawl|holy war|civil war|the game\b|old oaken|little brown jug|paul bunyan|commonwealth cup|governor's cup|clean, old-fashioned|deep south|lone star showdown|derby|clásico|clasico|o'rivals/i;
+function rivalGame(g){ return isRivalry(g.lg, g.home.abbr, g.away.abbr) || RIVAL_NOTE.test(g.note || ""); }
 function isRivalry(lgId, a, b){
   const list = RIVALS[lgId] || [];
   return list.some(([x,y]) => (x===a && y===b) || (x===b && y===a));
@@ -621,7 +635,7 @@ function hypeScore(g, L){
   const rH = g.home.rank, rA = g.away.rank;
   if (rH && rA){ const b = 14 + 12 * (1 - (rH + rA) / 50); h += b; parts.push(["Ranked matchup", b]); }
   else if (rH || rA){ const b = 3 + 6 * (1 - (rH || rA) / 30); h += b; parts.push(["Ranked team", b]); }
-  if (isRivalry(g.lg, g.home.abbr, g.away.abbr)){ h += 12; parts.push(["Rivalry", 12]); }
+  if (rivalGame(g)){ h += 12; parts.push(["Rivalry", 12]); }
   if (g.odds){ const b = 24 * (1 - (g.odds.favProb - .5) * 2) - 6; h += b; parts.push(["Betting line", b]); }
   else { h += 5; parts.push(["No line (neutral)", 5]); }
   const w1 = g.home.wp, w2 = g.away.wp;
@@ -709,8 +723,28 @@ function jolt(g, p, closeness){
   if (!j || g.state !== "in") return {v:0};
   const mins = (Date.now() - j.ts) / 60000;
   if (mins > 15 || mins < 0) return {v:0};
-  const base = j.kind === "score" ? 6 : 12;
-  return {v: base * (0.5 + 0.5 * p) * (0.4 + 0.6 * closeness) * Math.exp(-mins / 4), j, mins};
+  const base = j.kind === "score" ? 10 : 18;
+  return {v: base * (0.6 + 0.4 * p) * (0.5 + 0.5 * closeness) * Math.exp(-mins / 5), j, mins};
+}
+/* Momentum: how the margin moved over the last ~12 real minutes (from what Pulse has watched). */
+function momentum(g, L, p){
+  if (g.state !== "in") return {v:0};
+  const ex = (history[g.id] && history[g.id].ex || []).filter(x => x.t && x.h != null);
+  if (ex.length < 2) return {v:0};
+  const now = Date.now(), from = now - 12 * 60e3;
+  let ref = null;
+  for (const x of ex) if (x.t <= from) ref = x;
+  if (!ref) ref = ex[0];
+  if (now - ref.t < 3 * 60e3) return {v:0};
+  const m0 = ref.h - ref.a, m1 = g.home.score - g.away.score;
+  const flipped = m0 !== 0 && m1 !== 0 && Math.sign(m0) !== Math.sign(m1);
+  const mv = flipped ? Math.abs(m0) + Math.abs(m1) : Math.abs(m0) - Math.abs(m1);   // + = game got closer
+  const scored = (g.home.score + g.away.score) - (ref.h + ref.a);
+  let v = 0, why = "";
+  if (mv > 0){ v = 16 * Math.min(1.5, mv / L.tm) * (0.5 + 0.5 * p); why = flipped ? "Momentum swing" : "Closing the gap"; }
+  else if (mv < 0){ v = -8 * Math.min(1, -mv / L.tm) * (0.5 + 0.5 * p); why = "Pulling away"; }
+  else if (scored > 0 && m1 === 0) { v = 6 * (0.5 + 0.5 * p); why = "Trading scores"; }
+  return {v, why};
 }
 
 /* ---------- Excitement ---------- */
@@ -728,9 +762,9 @@ function rate(g){
   const total = g.home.score + g.away.score;
 
   // Core: closeness (margin vs. what's normal, tighter as time runs out) × lateness.
-  const tmEff = L.tm * (0.75 + 0.75 * Math.sqrt(1 - p));
-  const closeness = Math.exp(-0.9 * (am / tmEff) ** 2);
-  const lateness = ot ? 1 : 0.35 + 0.65 * Math.pow(p, 1.5);
+  const tmEff = L.tm * (0.7 + 0.6 * Math.sqrt(1 - p));
+  const closeness = Math.exp(-1.1 * (am / tmEff) ** 2);
+  const lateness = ot ? 1 : 0.45 + 0.55 * Math.pow(p, 1.3);
 
   // Scoring pace vs. the league norm.
   let paceF = 1, paceRatio = null;
@@ -786,11 +820,13 @@ function rate(g){
 
   const mo = g._at ? {v:0, tags:[]} : moment(g, L, p, m, closeness);
   const jo = g._at ? {v:0} : jolt(g, p, closeness);
-  const live = Math.max(2, core + comeback + leadChg + upset + otB + crunch + stakes + mo.v + jo.v);
-  const w = Math.min(1, p / 0.333);
+  const mm = g._at ? {v:0} : momentum(g, L, p);
+  const live = Math.max(2, core + comeback + leadChg + upset + otB + crunch + stakes + mo.v + jo.v + mm.v);
+  // Pregame hype hands off to live play quickly (first ~15% of the game).
+  const w = Math.min(1, p / 0.15);
   const raw = (1 - w) * hype.value + w * live;
   g.score = Math.round(clamp(compress(raw), 0, 100));
-  g.parts = {closeness, lateness, paceF, paceRatio, core, comeback, swing, leadChg, changes: changes.length, upset, upsetWhy, otB, crunch, stakes, mo:mo.v, jo:jo.v, w, live, hist};
+  g.parts = {closeness, lateness, paceF, paceRatio, core, comeback, swing, leadChg, changes: changes.length, upset, upsetWhy, otB, crunch, stakes, mo:mo.v, jo:jo.v, mm:mm.v, mmWhy:mm.why, w, live, hist};
 
   const tags = [];
   if (g.preseason) tags.push(["Preseason", ""]);
@@ -802,13 +838,14 @@ function rate(g){
     tags.push([label, jo.j.kind === "score" ? "hot" : "red"]);
   }
   tags.push(...mo.tags);
+  if (mm.v > 4) tags.push([mm.why, "hot"]);
   if (ot) tags.push(["Overtime", "red"]);
   if (crunch > 2 && g.state === "in") tags.push(["Crunch time", "red"]);
   if (swing >= L.tm * 0.8) tags.push(["Comeback", "hot"]);
   if (changes.length && p - changes[changes.length - 1] < 0.1) tags.push(["Lead change", "hot"]);
   else if (changes.length >= 3) tags.push([changes.length + " lead changes", ""]);
   if (upset > 4) tags.push([g.state === "post" ? "Upset" : "Upset watch", "hot"]);
-  if (isRivalry(g.lg, g.home.abbr, g.away.abbr)) tags.push(["Rivalry", ""]);
+  if (rivalGame(g)) tags.push(["Rivalry", ""]);
   if (g.state !== "pre" && p > .5 && am > L.tm * 2) tags.push(["Blowout", ""]);
   g.tags = tags;
   return g;
@@ -817,7 +854,7 @@ function hypeTags(g){
   const t = [];
   if (g.preseason) return [["Preseason", ""]];
   if (g.home.rank && g.away.rank) t.push(["Top 25 matchup", "hot"]);
-  if (isRivalry(g.lg, g.home.abbr, g.away.abbr)) t.push(["Rivalry", "hot"]);
+  if (rivalGame(g)) t.push(["Rivalry", "hot"]);
   if (g.postseason) t.push(["Postseason", "red"]);
   if (g.odds && g.odds.favProb < .58) t.push(["Coin flip", ""]);
   return t;
@@ -1034,6 +1071,18 @@ function cardTeam(t, g, other){
     <span class="nm">${t.rank ? `<span class="rk">${t.rank}</span>` : ""}${esc(t.name)}${!showScore && t.record ? `<span class="rec">${esc(t.record)}</span>` : ""}</span>
     <span class="sc">${showScore ? t.score : ""}</span></div>`;
 }
+/* Matchup flags shown on every card: rivalry, ranked matchup, postseason, upset, overtime. */
+function cardFlags(g){
+  const f = [];
+  if (g.ot && g.state !== "pre") f.push(["OT", "red"]);
+  if (g.parts && g.parts.upset > 4) f.push([g.state === "post" ? "Upset" : "Upset watch", "hot"]);
+  if (g.home.rank && g.away.rank) f.push(["Top 25 matchup", "hot"]);
+  else if (g.home.rank || g.away.rank){ /* a single ranked team is shown by its number */ }
+  if (rivalGame(g)) f.push(["Rivalry", "riv"]);
+  if (g.postseason) f.push(["Postseason", "red"]);
+  if (g.preseason) f.push(["Preseason", ""]);
+  return f.slice(0, 3).map(([t, c]) => `<span class="flag ${c}">${esc(t)}</span>`).join("");
+}
 function card(g){
   const L = LG[g.lg];
   const col = g.preseason && g.state === "pre" ? "var(--faint)" : colorAt(g.score);
@@ -1050,6 +1099,7 @@ function card(g){
       ${cardTeam(g.away, g, g.home)}
       ${cardTeam(g.home, g, g.away)}
       <div class="meta"><span class="lgn">${lg}</span><span class="st">${esc(statusText(g))}</span>${g.broadcast ? `<span class="net">${esc(g.broadcast)}</span>` : ""}</div>
+      ${(fl => fl ? `<div class="flags">${fl}</div>` : "")(cardFlags(g))}
     </div>
     <div class="ex"><b>${g.score}</b><small>${word}</small>${d}</div>
   </button>`;
@@ -1387,7 +1437,8 @@ function fillGame(g){
     rows += barRow(P.upsetWhy || "Upset", P.upset, 16, f(P.upset), "var(--heat)");
     rows += barRow("OT / crunch", P.otB + P.crunch, 21, f(P.otB + P.crunch), "var(--must)");
     rows += barRow("Right now", P.mo, 18, f(P.mo), "var(--must)");
-    rows += barRow("Fresh score", P.jo, 12, f(P.jo), "var(--must)");
+    rows += barRow("Fresh score", P.jo, 18, f(P.jo), "var(--must)");
+    rows += barRow(P.mmWhy || "Momentum", Math.max(0, P.mm), 24, f(P.mm), "var(--heat)");
     if (g.glow) rows += barRow("Cooling off", g.glow, 30, f(g.glow), "var(--heat)");
     rows += barRow("Stakes", Math.max(0, P.stakes + 7), 14, f(P.stakes));
     rows += barRow("Live vs hype", P.w, 1, Math.round(P.w * 100) + "%");
