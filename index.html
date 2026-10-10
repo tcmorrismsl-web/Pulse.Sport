@@ -1265,11 +1265,16 @@ function drawLive(){
       <circle cx="${x(last.t)}" cy="${y(last.s)}" r="3" fill="${colorAt(last.s)}"/></g>`;
   }
   // End labels for every game, nudged apart.
-  const gap = 11.5;
+  // Keep every label inside the chart: spread them apart, then fit them between the top and bottom edges.
+  const top = pad.t + 4, bottom = y(0) - 2;
   const labs = series.map(({g, pts}) => ({g, y: y(pts[pts.length - 1].s)})).sort((a, b) => a.y - b.y);
+  const gap = labs.length > 1 ? Math.min(11.5, (bottom - top) / (labs.length - 1)) : 11.5;
+  for (const l of labs) l.y = clamp(l.y, top, bottom);
   for (let i = 1; i < labs.length; i++) if (labs[i].y - labs[i - 1].y < gap) labs[i].y = labs[i - 1].y + gap;
-  const over = labs.length ? labs[labs.length - 1].y - (y(0) - 2) : 0;
-  if (over > 0) labs.forEach(l => l.y -= over);
+  if (labs.length && labs[labs.length - 1].y > bottom){
+    labs[labs.length - 1].y = bottom;
+    for (let i = labs.length - 2; i >= 0; i--) if (labs[i + 1].y - labs[i].y < gap) labs[i].y = labs[i + 1].y - gap;
+  }
   const lx = pad.l + pw + 7;
   svg += labs.map(({g, y: ly}) => {
     const ab = t => esc(t.abbr || t.name);
