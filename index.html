@@ -510,8 +510,9 @@ function parseSit(comp, home, away, L){
   }
   if (L.kind === "soccer" && Array.isArray(comp.details)){
     const min = d => { const c = d.clock || {}; return typeof c.value === "number" ? c.value / 60 : parseInt(c.displayValue, 10) || 0; };
-    out.goals = comp.details.filter(d => d.scoringPlay).map(d => ({min: min(d), side: sideOf(d.team && d.team.id), text: (d.type && d.type.text) || "Goal"}));
-    out.reds = comp.details.filter(d => d.redCard).map(d => ({min: min(d), side: sideOf(d.team && d.team.id)}));
+    const who = d => { const a = d.athletesInvolved && d.athletesInvolved[0]; return a ? (a.shortName || a.displayName || "") : ""; };
+    out.goals = comp.details.filter(d => d.scoringPlay).map(d => ({min: min(d), side: sideOf(d.team && d.team.id), text: (d.type && d.type.text) || "Goal", who: who(d), og: !!d.ownGoal, pen: !!d.penaltyKick}));
+    out.reds = comp.details.filter(d => d.redCard).map(d => ({min: min(d), side: sideOf(d.team && d.team.id), who: who(d)}));
   }
   return out;
 }
@@ -634,6 +635,9 @@ function hypeScore(g, L){
   return {value: clamp(h, 8, 92), parts};
 }
 
+/* Team name for a side ("home" / "away"), for labels like "Red card · Spurs". */
+const sideName = (g, side) => side === "home" ? g.home.name : side === "away" ? g.away.name : "";
+
 /* ---------- Right now: the live situation ---------- */
 const BASE_W = [0, .3, .5, .7, .55, .75, .85, 1];   // none, 1st, 2nd, 1st+2nd, 3rd, 1st+3rd, 2nd+3rd, loaded
 function moment(g, L, p, m, closeness){
@@ -669,7 +673,9 @@ function moment(g, L, p, m, closeness){
     }
   } else if (L.kind === "soccer" && s.reds && s.reds.length){
     v += 3 * (0.5 + 0.5 * closeness);
-    tags.push([s.reds.length > 1 ? s.reds.length + " red cards" : "Red card", "red"]);
+    const teams = [...new Set(s.reds.map(r => sideName(g, r.side)).filter(Boolean))];
+    const n = s.reds.length;
+    tags.push([(n > 1 ? n + " red cards" : "Red card") + (teams.length ? " · " + teams.join(", ") : ""), "red"]);
   }
   return {v: Math.min(18, v), tags};
 }
@@ -788,7 +794,13 @@ function rate(g){
 
   const tags = [];
   if (g.preseason) tags.push(["Preseason", ""]);
-  if (jo.v > 1 && jo.mins < 5) tags.push([jo.j.kind === "tie" ? "Game tied!" : jo.j.kind === "ahead" ? "Go-ahead score" : "Just scored", jo.j.kind === "score" ? "hot" : "red"]);
+  if (jo.v > 1 && jo.mins < 5){
+    const who = sideName(g, jo.j.side);
+    const label = jo.j.kind === "tie" ? (who ? who + " tied it!" : "Game tied!")
+      : jo.j.kind === "ahead" ? (who ? who + " took the lead" : "Go-ahead score")
+      : (who ? who + " scored" : "Just scored");
+    tags.push([label, jo.j.kind === "score" ? "hot" : "red"]);
+  }
   tags.push(...mo.tags);
   if (ot) tags.push(["Overtime", "red"]);
   if (crunch > 2 && g.state === "in") tags.push(["Crunch time", "red"]);
@@ -1352,7 +1364,9 @@ function nowBox(g){
   const s = g.sit || {};
   const sit = sitHTML(g);
   const lp = s.lastPlay && s.lastPlay.text ? `<div class="lp"><b>Last play:</b> ${esc(s.lastPlay.text)}</div>` : "";
-  const goals = s.goals && s.goals.length ? `<div class="lp"><b>Goals:</b> ${s.goals.map(x => esc((x.side === "home" ? g.home : x.side === "away" ? g.away : {abbr:""}).abbr) + " " + Math.round(x.min) + "′").join(", ")}</div>` : "";
+  const evt = x => esc(sideName(g, x.side) || "?") + (x.who ? " (" + esc(x.who) + (x.og ? ", own goal" : x.pen ? ", pen" : "") + ")" : "") + " " + Math.round(x.min) + "′";
+  const goals = (s.goals && s.goals.length ? `<div class="lp"><b>Goals:</b> ${s.goals.map(evt).join(" · ")}</div>` : "") +
+    (s.reds && s.reds.length ? `<div class="lp"><b style="color:#F08A90">Red card${s.reds.length > 1 ? "s" : ""}:</b> ${s.reds.map(evt).join(" · ")}</div>` : "");
   const tags = (g.tags || []).slice(0, 4).map(([t, c]) => `<span class="tag ${c}">${esc(t)}</span>`).join("");
   if (!sit && !lp && !goals && !tags) return "";
   return `<div class="now-box"><p class="eyebrow">Right now</p>${sit}${lp}${goals}${tags ? `<div class="tags">${tags}</div>` : ""}</div>`;
@@ -1461,7 +1475,7 @@ function sampleGames(){
     mk("epl", 4, "in", {period:2, clock:4860, dc:"81'", detail:"81'",
       away: T("TOT","Tottenham",3,[1]), home: T("ARS","Arsenal",3,[2]),
       details:[{scoringPlay:true, clock:{value:720}, team:{id:"eplARS"}}, {scoringPlay:true, clock:{value:1500}, team:{id:"eplTOT"}},
-        {scoringPlay:true, clock:{value:2400}, team:{id:"eplARS"}}, {redCard:true, clock:{value:3900}, team:{id:"eplARS"}},
+        {scoringPlay:true, clock:{value:2400}, team:{id:"eplARS"}}, {redCard:true, clock:{value:3900}, team:{id:"eplARS"}, athletesInvolved:[{shortName:"W. Saliba"}]},
         {scoringPlay:true, clock:{value:3960}, team:{id:"eplTOT"}}, {scoringPlay:true, clock:{value:4620}, team:{id:"eplTOT"}}, {scoringPlay:true, clock:{value:4800}, team:{id:"eplARS"}}].map(d => ({...d})) }),
     mk("wnba", 5, "in", {period:2, clock:311, detail:"2nd - 5:11", post:true,
       away: T("NY","Liberty",40,[22]), home: T("LV","Aces",37,[18])}),
