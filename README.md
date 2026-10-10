@@ -45,7 +45,7 @@ The empty `.nojekyll` file tells GitHub Pages to serve the files as they are.
 ## Flags and filters
 
 - **Playoff series:** cards show the series score (from ESPN's series data) and flag elimination games with the team facing elimination, or "Game 7" / "Winner take all" when both are.
-- **End-of-game clock:** in the final period or overtime, the game clock turns yellow under 4:00 and red under 2:00. Soccer turns yellow from 75′ and red from 85′ and in stoppage time. This shows on cards, chart labels and the game popup.
+- **End-of-game clock:** in the final period or overtime, the game clock turns yellow under 4:00 and red under 2:00. Soccer turns yellow from 75′ and red from 85′ and in stoppage time. Baseball turns yellow from the 7th inning and red from the 9th, including extra innings. This shows on cards, chart labels and the game popup.
 - **Live** and **Upsets** buttons next to the league chips narrow the page to games in progress, or to games where the underdog is leading or won.
 
 ## Where to tune it

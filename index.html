@@ -681,7 +681,7 @@ function hypeScore(g, L){
   return {value: clamp(h, 8, 92), parts};
 }
 
-/* Time pressure near the end: 0 = none, 1 = yellow (<4 min; soccer <15), 2 = red (<2 min; soccer <5). */
+/* Time pressure near the end: 0 = none, 1 = yellow (<4 min; soccer <15; baseball 7th-8th), 2 = red (<2 min; soccer <5; baseball 9th+). */
 function crunchLevel(g){
   if (g.state !== "in") return 0;
   const L = LG[g.lg];
@@ -693,6 +693,7 @@ function crunchLevel(g){
     if (/\+/.test(g.displayClock || "") || min >= 85) return 2;
     return min >= 75 ? 1 : 0;
   }
+  if (L.kind === "baseball") return (g.period || 0) >= 9 ? 2 : (g.period || 0) >= 7 ? 1 : 0;   // 7th-8th yellow, 9th + extras red
   if (L.kind !== "clock" || g.clock == null || (g.period || 0) < L.periods) return 0;
   if (/END|HALF/.test(g.statusName)) return 0;
   return g.clock <= 120 ? 2 : g.clock <= 240 ? 1 : 0;
