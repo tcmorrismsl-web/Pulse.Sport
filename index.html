@@ -76,6 +76,9 @@ header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background
 .live-chip:hover{color:#E3A0A6;border-color:#5A2E35}
 .live-chip[aria-pressed="true"]{background:#2A161A;color:#F2C4C8;border-color:#6B2F38}
 .live-chip[aria-pressed="true"]:hover{background:#321A1F}
+.ups-chip{color:#C99A6E;border-color:#3A2E22}
+.ups-chip:hover{color:#E9B88A;border-color:#5A4330}
+.ups-chip[aria-pressed="true"]{background:#2A2016;color:#F2D4B4;border-color:#6B4C2F}
 .chip-sep{width:1px;align-self:stretch;background:#20242C;margin:3px 2px}
 .chip .n{font-variant-numeric:tabular-nums;font-weight:500;opacity:.7;font-size:12px}
 .chip .ld{width:6px;height:6px;border-radius:50%;background:var(--must)}
@@ -163,6 +166,7 @@ section.block{margin-top:26px}
 .gc .flag{font-size:9.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;line-height:12px;padding:2px 6px;border-radius:5px;border:1px solid #2C313A;color:#88909A}
 .gc .flag.hot{color:#E9A06E;border-color:#4A3424;background:#1C1612}
 .gc .flag.red{color:#F08A90;border-color:#4C262B;background:#1E1215}
+.gc .flag.ser{color:#AEB6C1;border-color:#343A44;background:#171B21;text-transform:none;letter-spacing:0;font-size:10px}
 .gc .flag.riv{color:#D7B46A;border-color:#47391F;background:#1B1710}
 .gc .tm{display:grid;grid-template-columns:17px 1fr auto;gap:9px;align-items:center}
 .gc .tm img,.gc .tm .ph{width:17px;height:17px;object-fit:contain}
@@ -282,7 +286,7 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
       <button class="link" id="selAll" type="button">Select all</button>
       <button class="link" id="selNone" type="button">Clear</button>
     </div>
-    <div class="chips"><button class="chip live-chip" id="liveOnly" type="button" aria-pressed="false"><span class="ld"></span>Live<span class="n" id="liveN"></span></button><span class="chip-sep" aria-hidden="true"></span><div class="chips" id="chips" style="display:contents"></div></div>
+    <div class="chips"><button class="chip live-chip" id="liveOnly" type="button" aria-pressed="false"><span class="ld"></span>Live<span class="n" id="liveN"></span></button><button class="chip ups-chip" id="upsetOnly" type="button" aria-pressed="false">Upsets<span class="n" id="upsetN"></span></button><span class="chip-sep" aria-hidden="true"></span><div class="chips" id="chips" style="display:contents"></div></div>
   </div>
 
   <div class="banner" id="sampleBanner" hidden><b>Sample games.</b> ESPN's scoreboards can't be reached from here, so these made-up games show how Pulse rates them. Hosted on its own site (Netlify, for example), Pulse shows live scores.</div>
@@ -424,6 +428,8 @@ const store = {
 
 let selected = new Set(store.get("pulse.leagues", LEAGUES.map(l => l.id)));
 let liveOnly = !!store.get("pulse.liveOnly", false);
+let upsetOnly = !!store.get("pulse.upsetOnly", false);
+const isUpset = g => !!(g.parts && g.parts.upset > 4);
 let history = store.get("pulse.hist", {});       // gameId -> {ts, pts:[{p,m}]}
 let games = [];                                    // parsed + rated
 let leagueState = {};                             // id -> {ok, n, live}
@@ -530,6 +536,29 @@ function parseSit(comp, home, away, L){
   }
   return out;
 }
+/* Playoff series: who leads, and whether a loss ends someone's season. */
+function parseSeries(comp, home, away, L){
+  const sr = comp.series;
+  if (!sr || (sr.type && sr.type !== "playoff") || !Array.isArray(sr.competitors)) return null;
+  const winsOf = t => { const c = sr.competitors.find(x => String(x.id) === String(t.id)); return c ? Number(c.wins) || 0 : 0; };
+  const hw = winsOf(home), aw = winsOf(away);
+  const note = ((comp.notes && comp.notes[0] && comp.notes[0].headline) || "") + " " + (sr.title || "") + " " + (sr.description || "");
+  let total = Number(sr.totalCompetitions) || 0;
+  if (!total){
+    if (/wild ?card/i.test(note) && L.id === "mlb") total = 3;
+    else if (/ALDS|NLDS|division series/i.test(note)) total = 5;
+    else total = 7;
+  }
+  if (total <= 1) return null;                    // single-game rounds aren't a series
+  const need = Math.floor(total / 2) + 1;
+  const gameNo = hw + aw + 1;
+  const homeOut = aw === need - 1, awayOut = hw === need - 1;   // a loss here ends that team's season
+  let summary = sr.summary || "";
+  if (!summary) summary = hw === aw ? `Series tied ${hw}-${aw}` : `${(hw > aw ? home : away).abbr || (hw > aw ? home : away).name} leads ${Math.max(hw, aw)}-${Math.min(hw, aw)}`;
+  return {hw, aw, total, need, gameNo, summary, completed: !!sr.completed,
+    elim: !sr.completed && (homeOut || awayOut), decider: !sr.completed && homeOut && awayOut,
+    facing: homeOut && !awayOut ? "home" : awayOut && !homeOut ? "away" : null};
+}
 function parseEvent(ev, L){
   const comp = ev.competitions && ev.competitions[0];
   if (!comp) return null;
@@ -556,6 +585,7 @@ function parseEvent(ev, L){
     note, conf: !!comp.conferenceCompetition,
     group: comp.groups && (comp.groups.shortName || comp.groups.name) || "",
     postseason: ev.season && ev.season.type === 3,
+    series: parseSeries(comp, home, away, L),
     preseason: ev.season && ev.season.type === 1,
     venue: comp.venue && comp.venue.fullName || "",
     broadcast: (comp.broadcasts && comp.broadcasts[0] && comp.broadcasts[0].names || []).join(", "),
@@ -644,10 +674,30 @@ function hypeScore(g, L){
     if (b){ h += b; parts.push(["Both teams winning", b]); }
   }
   if (g.postseason){ h += 15; parts.push(["Postseason", 15]); }
+  if (g.series && g.series.decider){ h += 15; parts.push(["Winner-take-all", 15]); }
+  else if (g.series && g.series.elim){ h += 9; parts.push(["Elimination game", 9]); }
   if (/final|championship|playoff|semifinal|quarterfinal|round of|bowl|cup|derby|rivalry/i.test(g.note)){ h += 8; parts.push([g.note, 8]); }
   if (g.conf){ h += 2; parts.push(["Conference game", 2]); }
   return {value: clamp(h, 8, 92), parts};
 }
+
+/* Time pressure near the end: 0 = none, 1 = yellow (<4 min; soccer <15), 2 = red (<2 min; soccer <5). */
+function crunchLevel(g){
+  if (g.state !== "in") return 0;
+  const L = LG[g.lg];
+  if (L.kind === "soccer"){
+    if ((g.period || 0) < 2 || /HALF/.test(g.statusName)) return 0;
+    let secs = g.clock;
+    if (secs == null || !isFinite(secs)){ const n = parseInt(g.displayClock, 10); secs = isNaN(n) ? 0 : n * 60; }
+    const min = secs / 60;
+    if (/\+/.test(g.displayClock || "") || min >= 85) return 2;
+    return min >= 75 ? 1 : 0;
+  }
+  if (L.kind !== "clock" || g.clock == null || (g.period || 0) < L.periods) return 0;
+  if (/END|HALF/.test(g.statusName)) return 0;
+  return g.clock <= 120 ? 2 : g.clock <= 240 ? 1 : 0;
+}
+const CRUNCH = ["", "#E8C25A", "#FF5A64"];
 
 /* Team name for a side ("home" / "away"), for labels like "Red card · Spurs". */
 const sideName = (g, side) => side === "home" ? g.home.name : side === "away" ? g.away.name : "";
@@ -1079,9 +1129,12 @@ function cardFlags(g){
   if (g.home.rank && g.away.rank) f.push(["Top 25 matchup", "hot"]);
   else if (g.home.rank || g.away.rank){ /* a single ranked team is shown by its number */ }
   if (rivalGame(g)) f.push(["Rivalry", "riv"]);
-  if (g.postseason) f.push(["Postseason", "red"]);
+  if (g.series && g.series.decider) f.push([g.series.total === 7 ? "Game 7" : "Winner take all", "red"]);
+  else if (g.series && g.series.elim){ const t = g.series.facing === "home" ? g.home : g.series.facing === "away" ? g.away : null; f.push([t ? (t.abbr || t.name) + " facing elimination" : "Elimination game", "red"]); }
+  if (g.series) f.push([g.series.summary, "ser"]);
+  else if (g.postseason) f.push(["Postseason", "red"]);
   if (g.preseason) f.push(["Preseason", ""]);
-  return f.slice(0, 3).map(([t, c]) => `<span class="flag ${c}">${esc(t)}</span>`).join("");
+  return f.slice(0, 4).map(([t, c]) => `<span class="flag ${c}">${esc(t)}</span>`).join("");
 }
 function card(g){
   const L = LG[g.lg];
@@ -1098,7 +1151,7 @@ function card(g){
     <div class="body">
       ${cardTeam(g.away, g, g.home)}
       ${cardTeam(g.home, g, g.away)}
-      <div class="meta"><span class="lgn">${lg}</span><span class="st">${esc(statusText(g))}</span>${g.broadcast ? `<span class="net">${esc(g.broadcast)}</span>` : ""}</div>
+      <div class="meta"><span class="lgn">${lg}</span><span class="st"${crunchLevel(g) ? ` style="color:${CRUNCH[crunchLevel(g)]};font-weight:600"` : ""}>${esc(statusText(g))}</span>${g.broadcast ? `<span class="net">${esc(g.broadcast)}</span>` : ""}</div>
       ${(fl => fl ? `<div class="flags">${fl}</div>` : "")(cardFlags(g))}
     </div>
     <div class="ex"><b>${g.score}</b><small>${word}</small>${d}</div>
@@ -1118,7 +1171,8 @@ function renderChips(){
 function render(){
   $("#loading").hidden = true;
   renderChips();
-  const vis = games.filter(g => selected.has(g.lg));
+  const inLeagues = games.filter(g => selected.has(g.lg));
+  const vis = upsetOnly ? inLeagues.filter(isUpset) : inLeagues;
   const live = vis.filter(g => g.state === "in").sort((a, b) => b.score - a.score);
   const up = vis.filter(g => g.state === "pre").sort((a, b) => (new Date(a.date) - new Date(b.date)) || (b.score - a.score));
   const fin = vis.filter(g => g.state === "post").sort((a, b) => b.score - a.score);
@@ -1137,7 +1191,7 @@ function render(){
   $("#liveGrid").innerHTML = live.map(card).join("");
   $("#liveLabel").hidden = !live.length;
   $("#liveEmpty").hidden = !!live.length;
-  $("#liveEmpty").textContent = (selected.size ? "No live games in your leagues right now." : "Pick a league above to see games.") + (fin.length || upList.length || todayList.length ? (liveOnly ? " Turn off the Live filter to see upcoming and finished games." : " Finished and upcoming games are below.") : "");
+  $("#liveEmpty").textContent = (!selected.size ? "Pick a league above to see games." : upsetOnly ? "No live upsets right now." : "No live games in your leagues right now.") + (fin.length || upList.length || todayList.length ? (liveOnly ? " Turn off the Live filter to see upcoming and finished games." : " Finished and upcoming games are below.") : "");
   $("#liveCount").textContent = live.length ? live.length + " game" + (live.length > 1 ? "s" : "") + " live" : "";
   liveList = live;
   drawLive();
@@ -1164,6 +1218,8 @@ function render(){
   $("#liveOnly").setAttribute("aria-pressed", liveOnly);
   $("#liveN").textContent = live.length;
   if (liveOnly) for (const sel of ["#todaySec", "#upSec", "#finSec"]) $(sel).hidden = true;
+  $("#upsetOnly").setAttribute("aria-pressed", upsetOnly);
+  $("#upsetN").textContent = inLeagues.filter(isUpset).length;
   $("#finCount").textContent = fin.length ? fin.length + " games" : "";
 
   // Keep an open game modal current.
@@ -1278,7 +1334,7 @@ function drawLive(){
   const lx = pad.l + pw + 7;
   svg += labs.map(({g, y: ly}) => {
     const ab = t => esc(t.abbr || t.name);
-    return `<text class="lbl" data-id="${esc(g.id)}" x="${lx}" y="${ly + 3}" font-size="8.6" font-family="${F}"><tspan fill="${colorAt(g.score)}" font-weight="700">${g.score}</tspan><tspan fill="#E8EBF0" font-weight="600"> ${ab(g.away)} ${g.away.score}-${g.home.score} ${ab(g.home)}</tspan><tspan fill="#6E7681" font-size="7.4"> ${esc(statusText(g))}</tspan></text>`;
+    return `<text class="lbl" data-id="${esc(g.id)}" x="${lx}" y="${ly + 3}" font-size="8.6" font-family="${F}"><tspan fill="${colorAt(g.score)}" font-weight="700">${g.score}</tspan><tspan fill="#E8EBF0" font-weight="600"> ${ab(g.away)} ${g.away.score}-${g.home.score} ${ab(g.home)}</tspan><tspan fill="${CRUNCH[crunchLevel(g)] || "#6E7681"}" font-size="7.4"${crunchLevel(g) ? ' font-weight="700"' : ""}> ${esc(statusText(g))}</tspan></text>`;
   }).join("");
   el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Excitement of each live game over time">${svg}</svg>`;
   liveGeo = {x, y, t0, t1, series, svg: el.querySelector("svg")};
@@ -1459,7 +1515,7 @@ function fillGame(g){
     </div>
     <div class="score-line">
       <div class="side">${logoHTML(g.away, 36)}<span class="nm">${g.away.rank ? "#" + g.away.rank + " " : ""}${esc(g.away.name)}</span><span class="note">${esc(g.away.record)}</span></div>
-      <div class="mid">${g.state === "pre" ? "vs" : `<span class="big">${g.away.score}–${g.home.score}</span>`}<div>${esc(statusText(g))}</div></div>
+      <div class="mid">${g.state === "pre" ? "vs" : `<span class="big">${g.away.score}–${g.home.score}</span>`}<div${crunchLevel(g) ? ` style="color:${CRUNCH[crunchLevel(g)]};font-weight:700"` : ""}>${esc(statusText(g))}</div>${g.series ? `<div style="text-transform:none;letter-spacing:0;margin-top:3px">${esc(g.series.summary)}${g.series.decider ? " · winner take all" : g.series.elim ? " · " + esc(sideName(g, g.series.facing) || "a team") + " facing elimination" : ""}</div>` : ""}</div>
       <div class="side">${logoHTML(g.home, 36)}<span class="nm">${g.home.rank ? "#" + g.home.rank + " " : ""}${esc(g.home.name)}</span><span class="note">${esc(g.home.record)}</span></div>
     </div>
     <div class="big-dial" style="--z:${z.c};--v:${g.score}">
@@ -1508,6 +1564,7 @@ function sampleGames(){
         competitors: [team(o.home, "home"), team(o.away, "away")],
         situation: o.sit || (o.outs != null ? {outs: o.outs} : undefined),
         details: o.details,
+        series: o.series,
         status: {period: o.period || 0, clock: o.clock ?? null, displayClock: o.dc || "", type: {state, name: o.name || "", shortDetail: o.detail || ""}},
         odds: o.line ? [{details: o.line}] : undefined,
         notes: o.note ? [{headline: o.note}] : [],
@@ -1524,7 +1581,8 @@ function sampleGames(){
         lastPlay:{text:"J.Allen pass short right to K.Coleman for 11 yards", type:{text:"Pass Reception"}}}}),
     mk("ncaaf", 2, "in", {period:3, clock:402, detail:"3rd - 6:42", conf:true,
       away: T("TEX","Texas",31,[14,10]), home: T("OU","Oklahoma",10,[3,7]), line:"TEX -6.5"}),
-    mk("mlb", 3, "in", {period:9, detail:"Bot 9th",
+    mk("mlb", 3, "in", {period:9, detail:"Bot 9th", post:true, note:"ALDS - Game 4",
+      series:{type:"playoff", totalCompetitions:5, summary:"NYY leads series 2-1", competitors:[{id:"mlbNYY", wins:2},{id:"mlbBOS", wins:1}]},
       sit:{outs:1, balls:3, strikes:2, onFirst:true, onSecond:true, onThird:false,
         lastPlay:{text:"Devers walked, Duran to second.", type:{text:"Walk"}}},
       away: T("NYY","Yankees",4,[0,1,0,0,2,0,0,1,0]), home: T("BOS","Red Sox",3,[0,0,0,2,0,0,0,1]), line:"NYY -1.5"}),
@@ -1560,6 +1618,7 @@ $("#chips").addEventListener("click", e => {
   store.set("pulse.leagues", [...selected]);
   render();
 });
+$("#upsetOnly").addEventListener("click", () => { upsetOnly = !upsetOnly; store.set("pulse.upsetOnly", upsetOnly); render(); });
 $("#liveOnly").addEventListener("click", () => { liveOnly = !liveOnly; store.set("pulse.liveOnly", liveOnly); render(); });
 $("#selAll").addEventListener("click", () => { selected = new Set(LEAGUES.map(l => l.id)); store.set("pulse.leagues", [...selected]); render(); });
 $("#selNone").addEventListener("click", () => { selected = new Set(); store.set("pulse.leagues", []); render(); });
