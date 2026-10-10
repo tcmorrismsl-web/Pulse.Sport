@@ -79,6 +79,12 @@ header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background
 .ups-chip{color:#C99A6E;border-color:#3A2E22}
 .ups-chip:hover{color:#E9B88A;border-color:#5A4330}
 .ups-chip[aria-pressed="true"]{background:#2A2016;color:#F2D4B4;border-color:#6B4C2F}
+.subf{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:2px}
+.subf .lab{font-size:11px;font-weight:600;color:#5A606B;letter-spacing:.04em;margin-right:-2px}
+.seg{display:inline-flex;border:1px solid #20242C;border-radius:999px;overflow:hidden}
+.seg button{background:transparent;border:0;padding:3px 10px;font-family:var(--body);font-size:11.5px;font-weight:500;color:#5A606B;cursor:pointer}
+.seg button[aria-pressed="true"]{background:#1C2129;color:#C9CED6}
+.seg button:hover{color:#88909A}
 .chip-sep{width:1px;align-self:stretch;background:#20242C;margin:3px 2px}
 .chip .n{font-variant-numeric:tabular-nums;font-weight:500;opacity:.7;font-size:12px}
 .chip .ld{width:6px;height:6px;border-radius:50%;background:var(--must)}
@@ -287,6 +293,7 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
       <button class="link" id="selNone" type="button">Clear</button>
     </div>
     <div class="chips"><button class="chip live-chip" id="liveOnly" type="button" aria-pressed="false"><span class="ld"></span>Live<span class="n" id="liveN"></span></button><button class="chip ups-chip" id="upsetOnly" type="button" aria-pressed="false">Upsets<span class="n" id="upsetN"></span></button><span class="chip-sep" aria-hidden="true"></span><div class="chips" id="chips" style="display:contents"></div></div>
+    <div class="subf" id="subf" hidden></div>
   </div>
 
   <div class="banner" id="sampleBanner" hidden><b>Sample games.</b> ESPN's scoreboards can't be reached from here, so these made-up games show how Pulse rates them. Hosted on its own site (Netlify, for example), Pulse shows live scores.</div>
@@ -414,6 +421,20 @@ const RIVALS = {
 };
 // ESPN often names the rivalry in the game note ("Red River Rivalry", "Iron Bowl"...).
 const RIVAL_NOTE = /rivalr|red river|iron bowl|egg bowl|apple cup|bedlam|backyard brawl|holy war|civil war|the game\b|old oaken|little brown jug|paul bunyan|commonwealth cup|governor's cup|clean, old-fashioned|deep south|lone star showdown|derby|clásico|clasico|o'rivals/i;
+/* Power 4 membership, 2026-27 (no SEC / Big Ten / Big 12 / ACC changes from 2025-26).
+   Matched by ESPN abbreviation, with ESPN's conference name on conference games as a backup. */
+const P4 = {
+  SEC:      ["ALA","ARK","AUB","FLA","UGA","UK","LSU","MISS","MSST","MIZ","OU","SC","TENN","TEX","TA&M","VAN"],
+  "Big Ten":["ILL","IU","IOWA","MD","MICH","MSU","MINN","NEB","NU","OSU","ORE","PSU","PUR","RUTG","UCLA","USC","WASH","WIS"],
+  "Big 12": ["ARIZ","ASU","BAY","BYU","CIN","COLO","HOU","ISU","KU","KSU","OKST","TCU","TTU","UCF","UTAH","WVU"],
+  ACC:      ["BC","CAL","CLEM","DUKE","FSU","GT","LOU","MIA","NCST","UNC","PITT","SMU","STAN","SYR","UVA","VT","WAKE"],
+};
+const P4_TEAMS = new Set(Object.values(P4).flat());
+const P4_CONF = /^(SEC|Southeastern|Big Ten|Big 12|ACC|Atlantic Coast)/i;
+// Notre Dame: ACC in basketball; independent in football but treated as Power 4 here.
+function isP4Team(t, lg){ return P4_TEAMS.has(t.abbr) || t.abbr === "ND"; }
+function isP4Game(g){ return isP4Team(g.home, g.lg) || isP4Team(g.away, g.lg) || P4_CONF.test(g.group || ""); }
+
 function rivalGame(g){ return isRivalry(g.lg, g.home.abbr, g.away.abbr) || RIVAL_NOTE.test(g.note || ""); }
 function isRivalry(lgId, a, b){
   const list = RIVALS[lgId] || [];
@@ -429,6 +450,7 @@ const store = {
 let selected = new Set(store.get("pulse.leagues", LEAGUES.map(l => l.id)));
 let liveOnly = !!store.get("pulse.liveOnly", false);
 let upsetOnly = !!store.get("pulse.upsetOnly", false);
+let p4Only = store.get("pulse.p4", {ncaaf:false, ncaam:false});
 const isUpset = g => !!(g.parts && g.parts.upset > 4);
 let history = store.get("pulse.hist", {});       // gameId -> {ts, pts:[{p,m}]}
 let games = [];                                    // parsed + rated
@@ -478,6 +500,7 @@ function parseTeam(c){
   if (m){ const w=+m[1], l=+m[2], d=+(m[3]||0); if (w+l+d >= 3) wp = (w + d/2) / (w+l+d); }
   return {
     id: t.id, abbr: t.abbreviation || "", name: t.shortDisplayName || t.displayName || t.name || "TBD",
+    loc: t.location || "", confId: t.conferenceId != null ? String(t.conferenceId) : "",
     full: t.displayName || t.name || "",
     logo: t.logo || (t.logos && t.logos[0] && t.logos[0].href) || "",
     score: Number(c.score) || 0,
@@ -1159,6 +1182,17 @@ function card(g){
   </button>`;
 }
 
+/* College sub-filters: All / Power 4, shown when NCAAF or NCAAM is on. */
+function renderSubf(){
+  const rows = [["ncaaf", "NCAAF"], ["ncaam", "NCAAM"]].filter(([id]) => selected.has(id) && (leagueState[id] ? leagueState[id].n : 1));
+  $("#subf").hidden = !rows.length;
+  $("#subf").innerHTML = rows.map(([id, lab]) => {
+    const all = games.filter(g => g.lg === id), n4 = all.filter(isP4Game).length;
+    return `<span class="lab">${lab}</span><span class="seg" role="group" aria-label="${lab} filter">
+      <button type="button" data-p4="${id}" data-v="0" aria-pressed="${!p4Only[id]}">All ${all.length}</button>
+      <button type="button" data-p4="${id}" data-v="1" aria-pressed="${!!p4Only[id]}">Power 4 ${n4}</button></span>`;
+  }).join("");
+}
 function renderChips(){
   $("#chips").innerHTML = LEAGUES.map(l => {
     const s = leagueState[l.id];
@@ -1173,7 +1207,9 @@ function render(){
   $("#loading").hidden = true;
   renderChips();
   const inLeagues = games.filter(g => selected.has(g.lg));
-  const vis = upsetOnly ? inLeagues.filter(isUpset) : inLeagues;
+  const p4ok = g => !p4Only[g.lg] || isP4Game(g);
+  const vis = inLeagues.filter(g => p4ok(g) && (!upsetOnly || isUpset(g)));
+  renderSubf();
   const live = vis.filter(g => g.state === "in").sort((a, b) => b.score - a.score);
   const up = vis.filter(g => g.state === "pre").sort((a, b) => (new Date(a.date) - new Date(b.date)) || (b.score - a.score));
   const fin = vis.filter(g => g.state === "post").sort((a, b) => b.score - a.score);
@@ -1596,6 +1632,8 @@ function sampleGames(){
       away: T("NY","Liberty",40,[22]), home: T("LV","Aces",37,[18])}),
     mk("mls", 6, "in", {period:2, clock:4380, dc:"73'", detail:"73'",
       away: T("SEA","Sounders",0,[0]), home: T("POR","Timbers",0,[0])}),
+    mk("ncaaf", 12, "in", {period:2, clock:540, detail:"2nd - 9:00", conf:true,
+      away: T("BUFF","Buffalo",10,[7]), home: T("TOL","Toledo",13,[3])}),
     mk("ncaaf", 7, "pre", {date: iso(26), detail:"Sat 3:30 PM",
       away: T("ALA","Alabama",0,[],6,"3-1"), home: T("UGA","Georgia",0,[],3,"4-0"), line:"UGA -3"}),
     mk("nfl", 8, "pre", {date: iso(49), detail:"Sun 1:00 PM",
@@ -1618,6 +1656,11 @@ $("#chips").addEventListener("click", e => {
   selected.has(id) ? selected.delete(id) : selected.add(id);
   store.set("pulse.leagues", [...selected]);
   render();
+});
+$("#subf").addEventListener("click", e => {
+  const b = e.target.closest("[data-p4]"); if (!b) return;
+  p4Only = {...p4Only, [b.dataset.p4]: b.dataset.v === "1"};
+  store.set("pulse.p4", p4Only); render();
 });
 $("#upsetOnly").addEventListener("click", () => { upsetOnly = !upsetOnly; store.set("pulse.upsetOnly", upsetOnly); render(); });
 $("#liveOnly").addEventListener("click", () => { liveOnly = !liveOnly; store.set("pulse.liveOnly", liveOnly); render(); });
