@@ -79,6 +79,8 @@ header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background
 .ups-chip{color:#C99A6E;border-color:#3A2E22}
 .ups-chip:hover{color:#E9B88A;border-color:#5A4330}
 .ups-chip[aria-pressed="true"]{background:#2A2016;color:#F2D4B4;border-color:#6B4C2F}
+.range{margin-left:auto;align-self:center;appearance:none;-webkit-appearance:none;background:#13181E url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%237F8792' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 10px center;border:1px solid #262A35;border-radius:8px;color:#C9CED6;font-family:var(--body);font-size:12px;font-weight:500;padding:5px 28px 5px 10px;cursor:pointer}
+.range:hover{border-color:#343A44}
 .subf{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:2px}
 .subf .lab{font-size:11px;font-weight:600;color:#5A606B;letter-spacing:.04em;margin-right:-2px}
 .seg{display:inline-flex;border:1px solid #20242C;border-radius:999px;overflow:hidden}
@@ -326,8 +328,10 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
   </section>
 
   <section class="block" id="finSec" hidden>
-    <div class="sec-head"><h2 class="sec-title"><button class="tog" type="button" data-tog="fin" aria-expanded="true"><span class="chev" aria-hidden="true"></span>Final</button></h2><span class="count" id="finCount"></span></div>
+    <div class="sec-head"><h2 class="sec-title"><button class="tog" type="button" data-tog="fin" aria-expanded="true"><span class="chev" aria-hidden="true"></span>Final</button></h2><span class="count" id="finCount"></span>
+      <select class="range" id="finRange" aria-label="Which finished games to show"><option value="today">Today</option><option value="week">This week</option></select></div>
     <div class="grid cards" id="finGrid"></div>
+    <div class="days" id="finDays" hidden></div>
   </section>
 </main>
 
@@ -450,6 +454,8 @@ const store = {
 let selected = new Set(store.get("pulse.leagues", LEAGUES.map(l => l.id)));
 let liveOnly = !!store.get("pulse.liveOnly", false);
 let upsetOnly = !!store.get("pulse.upsetOnly", false);
+let finRange = store.get("pulse.finRange", "today") === "week" ? "week" : "today";
+let weekLoading = false;
 let p4Only = store.get("pulse.p4", {ncaaf:false, ncaam:false});
 const isUpset = g => !!(g.parts && g.parts.upset > 4);
 let history = store.get("pulse.hist", {});       // gameId -> {ts, pts:[{p,m}]}
@@ -462,7 +468,8 @@ const CAP = 6;
 const isOpen = (key, def) => key in openState ? openState[key] : def;
 { // Forget open/closed choices for days that have passed.
   const d = new Date(), today = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
-  for (const k in openState) if (k.startsWith("day:") && k.slice(4) < today) delete openState[k];
+  const w = new Date(Date.now() - 8 * 864e5), weekAgo = w.getFullYear() + "-" + String(w.getMonth() + 1).padStart(2, "0") + "-" + String(w.getDate()).padStart(2, "0");
+  for (const k in openState) if ((k.startsWith("day:") && k.slice(4) < today) || (k.startsWith("fday:") && k.slice(5) < weekAgo)) delete openState[k];
   store.set("pulse.open", openState);
 }
 let timer = null, busy = false;
@@ -1065,6 +1072,25 @@ async function fetchLeague(L){
     return finishLeague(L, j.events || []);
   } finally { clearTimeout(to); }
 }
+/* "This week" finals: the previous six days, one request per league per day, cached for an hour
+   (finished games don't change). Only fetched while the Final dropdown is on This week. */
+async function pastWeekFinals(){
+  const days = Array.from({length: 6}, (_, i) => ymd(new Date(Date.now() - (i + 1) * 864e5)));
+  const jobs = [];
+  for (const L of LEAGUES) for (const d of days) jobs.push((async () => {
+    const key = L.id + ":" + d, c = dayCache[key];
+    let events;
+    if (c && Date.now() - c.ts < 3600e3) events = c.events;
+    else {
+      const j = await getJSON("https://site.api.espn.com/apis/site/v2/sports/" + L.path + "/scoreboard?dates=" + d + (L.q ? "&" + L.q : ""));
+      events = j.events || [];
+      dayCache[key] = {ts: Date.now(), events};
+    }
+    return finishLeague(L, events).filter(g => g.state === "post");
+  })());
+  const out = await Promise.allSettled(jobs);
+  return out.flatMap(r => r.status === "fulfilled" ? r.value : []);
+}
 function finishLeague(L, events){
   let list = events.map(ev => parseEvent(ev, L)).filter(Boolean);
   if (L.id === "epl") for (const g of list){ eplTeams.add(String(g.home.id)); eplTeams.add(String(g.away.id)); }
@@ -1105,6 +1131,10 @@ async function refresh(){
     setConn("warn", "Sample data");
   } else {
     usingSample = false;
+    if (finRange === "week"){
+      const seen = new Set(next.map(g => g.id));
+      for (const g of await pastWeekFinals()) if (!seen.has(g.id)){ seen.add(g.id); next.push(g); }
+    }
     ingest(next);
     const t = new Date().toLocaleTimeString([], {hour:"numeric", minute:"2-digit", second:"2-digit"});
     const anyLive = next.some(g => g.state === "in");
@@ -1274,7 +1304,7 @@ function render(){
   renderSubf();
   const live = vis.filter(g => g.state === "in").sort((a, b) => b.score - a.score);
   const up = vis.filter(g => g.state === "pre").sort((a, b) => (new Date(a.date) - new Date(b.date)) || (b.score - a.score));
-  const fin = vis.filter(g => g.state === "post").sort((a, b) => b.score - a.score);
+  const finAll = vis.filter(g => g.state === "post").sort((a, b) => b.score - a.score);
 
   // Pregame: today's games get their own section; later days are grouped by day.
   // Within a day: hype (highest first), then league in chip order.
@@ -1290,7 +1320,7 @@ function render(){
   $("#liveGrid").innerHTML = live.map(card).join("");
   $("#liveLabel").hidden = !live.length;
   $("#liveEmpty").hidden = !!live.length;
-  $("#liveEmpty").textContent = (!selected.size ? "Pick a league above to see games." : upsetOnly ? "No live upsets right now." : "No live games in your leagues right now.") + (fin.length || upList.length || todayList.length ? (liveOnly ? " Turn off the Live filter to see upcoming and finished games." : " Finished and upcoming games are below.") : "");
+  $("#liveEmpty").textContent = (!selected.size ? "Pick a league above to see games." : upsetOnly ? "No live upsets right now." : "No live games in your leagues right now.") + (finAll.length || upList.length || todayList.length ? (liveOnly ? " Turn off the Live filter to see upcoming and finished games." : " Finished and upcoming games are below.") : "");
   $("#liveCount").textContent = live.length ? live.length + " game" + (live.length > 1 ? "s" : "") + " live" : "";
   liveList = live;
   drawLive();
@@ -1312,14 +1342,38 @@ function render(){
   }).join("") : "";
   $("#upCount").textContent = upList.length ? days.length + " day" + (days.length > 1 ? "s" : "") + " · " + upList.length + " games" : "";
 
-  setSection("fin", fin, "#finSec", "#finGrid", true);
+  // Final: Today (flat, hottest first) or This week (grouped by day, newest first).
+  const fin = finRange === "today" ? finAll.filter(g => dayKey(g) === todayKey)
+    : finAll.filter(g => new Date(g.date) >= Date.now() - 7 * 864e5);
+  $("#finRange").value = finRange;
+  if (finRange === "today"){
+    setSection("fin", fin, "#finSec", "#finGrid", true);
+    $("#finDays").hidden = true; $("#finDays").innerHTML = "";
+  } else {
+    const open = isOpen("fin", true);
+    $("#finSec").hidden = !fin.length && !weekLoading;
+    $('[data-tog="fin"]').setAttribute("aria-expanded", open);
+    $("#finGrid").hidden = true; $("#finGrid").innerHTML = "";
+    $("#finDays").hidden = !open;
+    const fdays = [];
+    for (const g of [...fin].sort((a, b) => dayKey(b).localeCompare(dayKey(a)) || (b.score - a.score))){
+      const k = dayKey(g); if (!fdays.length || fdays[fdays.length - 1].k !== k) fdays.push({k, list: []}); fdays[fdays.length - 1].list.push(g);
+    }
+    $("#finDays").innerHTML = open ? fdays.map(({k, list}, i) => {
+      const key = "fday:" + k, dOpen = isOpen(key, i === 0), top = list[0];
+      const label = k === todayKey ? "Today" : new Date(top.date).toLocaleDateString([], {weekday:"long", month:"short", day:"numeric"});
+      return `<div class="day"><h3 class="day-h"><button class="tog" type="button" data-tog="${esc(key)}" aria-expanded="${dOpen}"><span class="chev" aria-hidden="true"></span>${esc(label)}<span class="count">${list.length} game${list.length > 1 ? "s" : ""}</span>${dOpen ? "" : `<span class="peek">Best: ${esc(top.away.name)} at ${esc(top.home.name)} · ${top.score}</span>`}</button></h3>
+        ${dOpen ? `<div class="grid cards">${capped(list, key)}</div>` : ""}</div>`;
+    }).join("") : "";
+  }
   // Live-only filter: hide everything that isn't being played right now.
   $("#liveOnly").setAttribute("aria-pressed", liveOnly);
   $("#liveN").textContent = live.length;
   if (liveOnly) for (const sel of ["#todaySec", "#upSec", "#finSec"]) $(sel).hidden = true;
   $("#upsetOnly").setAttribute("aria-pressed", upsetOnly);
   $("#upsetN").textContent = inLeagues.filter(isUpset).length;
-  $("#finCount").textContent = fin.length ? fin.length + " games" : "";
+  $("#finCount").textContent = weekLoading && finRange === "week" ? "loading the week…" : fin.length ? fin.length + (fin.length === 1 ? " game" : " games") + (finRange === "week" ? " · last 7 days" : "") : (finRange === "today" ? "none yet today" : "");
+  if (finRange === "today" && !fin.length && finAll.length && !liveOnly) $("#finSec").hidden = false;
 
   // Keep an open game modal current.
   if ($("#gameDlg").open && openId){ const g = games.find(x => x.id === openId); if (g) fillGame(g); }
@@ -1723,6 +1777,12 @@ $("#subf").addEventListener("click", e => {
   const b = e.target.closest("[data-p4]"); if (!b) return;
   p4Only = {...p4Only, [b.dataset.p4]: b.dataset.v === "1"};
   store.set("pulse.p4", p4Only); render();
+});
+$("#finRange").addEventListener("change", async e => {
+  finRange = e.target.value === "week" ? "week" : "today";
+  store.set("pulse.finRange", finRange);
+  if (finRange === "week" && !usingSample){ weekLoading = true; render(); await refresh(); weekLoading = false; }
+  render();
 });
 $("#upsetOnly").addEventListener("click", () => { upsetOnly = !upsetOnly; store.set("pulse.upsetOnly", upsetOnly); render(); });
 $("#liveOnly").addEventListener("click", () => { liveOnly = !liveOnly; store.set("pulse.liveOnly", liveOnly); render(); });
