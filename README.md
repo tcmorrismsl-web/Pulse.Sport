@@ -1,12 +1,14 @@
 # Pulse.Sport
 
-Pulse rates every game across 14 leagues on a 0–100 excitement scale. It answers one question: is this game fun to watch right now?
+Pulse rates every game across 10 leagues on a 0–100 excitement scale. It answers one question: is this game fun to watch right now?
 
 The whole app is one file, `index.html`. It pulls live scoreboards from ESPN's public scoreboard feed when the page loads and refreshes them while it's open. There's no build step, server or API key.
 
 ## Leagues
 
-NFL, NCAAF, MLB, NBA, WNBA, NCAAM, NHL, MLS, Premier League, La Liga, Serie A, Bundesliga, Ligue 1, Champions League.
+NFL, NCAAF, MLB, NBA, WNBA, NCAAM, NHL, MLS, Premier League, Champions League.
+
+The Premier League button also includes FA Cup, Carabao Cup, Europa League and Conference League games that involve a Premier League club. Soccer feeds are requested for yesterday through the next week, since ESPN otherwise returns only a single day.
 
 ## Hosting on GitHub Pages
 

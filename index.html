@@ -393,13 +393,17 @@ const LEAGUES = [
   {id:"nhl",   label:"NHL",        path:"hockey/nhl", kind:"clock", periods:3, len:20, tm:1.8, pace:6, one:1},
   {id:"mls",   label:"MLS",        path:"soccer/usa.1", kind:"soccer", periods:2, len:45, tm:1.3, pace:2.9, one:1},
   {id:"epl",   label:"Premier League", path:"soccer/eng.1", kind:"soccer", periods:2, len:45, tm:1.3, pace:2.8, one:1},
-  {id:"laliga",label:"La Liga",    path:"soccer/esp.1", kind:"soccer", periods:2, len:45, tm:1.3, pace:2.6, one:1},
-  {id:"seriea",label:"Serie A",    path:"soccer/ita.1", kind:"soccer", periods:2, len:45, tm:1.3, pace:2.6, one:1},
-  {id:"bund",  label:"Bundesliga", path:"soccer/ger.1", kind:"soccer", periods:2, len:45, tm:1.3, pace:3.1, one:1},
-  {id:"ligue1",label:"Ligue 1",    path:"soccer/fra.1", kind:"soccer", periods:2, len:45, tm:1.3, pace:2.7, one:1},
   {id:"ucl",   label:"Champions League", path:"soccer/uefa.champions", kind:"soccer", periods:2, len:45, tm:1.3, pace:3.0, one:1},
+  // Cup games that include a Premier League club. They live under the Premier League chip.
+  {id:"facup", label:"FA Cup",            parent:"epl", eplOnly:true, path:"soccer/eng.fa",           kind:"soccer", periods:2, len:45, tm:1.3, pace:2.9, one:1},
+  {id:"efl",   label:"Carabao Cup",       parent:"epl", eplOnly:true, path:"soccer/eng.league_cup",   kind:"soccer", periods:2, len:45, tm:1.3, pace:2.9, one:1},
+  {id:"uel",   label:"Europa League",     parent:"epl", eplOnly:true, path:"soccer/uefa.europa",      kind:"soccer", periods:2, len:45, tm:1.3, pace:2.8, one:1},
+  {id:"uecl",  label:"Conference League", parent:"epl", eplOnly:true, path:"soccer/uefa.europa.conf", kind:"soccer", periods:2, len:45, tm:1.3, pace:2.8, one:1},
 ];
+const CHIPS = LEAGUES.filter(l => !l.parent);              // what the league buttons show
+const chipOf = id => (LG_PARENT[id] || id);
 const LG = Object.fromEntries(LEAGUES.map(l => [l.id, l]));
+const LG_PARENT = Object.fromEntries(LEAGUES.filter(l => l.parent).map(l => [l.id, l.parent]));
 
 /* Rivalries by ESPN abbreviation. Unmatched pairs simply never fire. */
 const CFB_RIVALS = [["MICH","OSU"],["AUB","ALA"],["TEX","OU"],["UGA","FLA"],["USC","ND"],["ARMY","NAVY"],["CLEM","SC"],["LSU","ALA"],["ORE","WASH"],["ORE","ORST"],["WASH","WSU"],["MISS","MSST"],["TENN","ALA"],["FSU","FLA"],["FSU","MIA"],["MIA","FLA"],["TEX","TA&M"],["MINN","WIS"],["MINN","IOWA"],["IOWA","NEB"],["UGA","GT"],["UGA","AUB"],["STAN","CAL"],["BYU","UTAH"],["IOWA","ISU"],["KU","KSU"],["KU","MIZ"],["UCLA","USC"],["MICH","MSU"],["IU","PUR"],["ILL","NU"],["PITT","WVU"],["UVA","VT"],["UNC","DUKE"],["UNC","NCST"],["UK","LOU"],["UK","TENN"],["OU","OKST"],["BAY","TCU"],["TEX","TTU"],["ARIZ","ASU"],["COLO","NEB"],["COLO","UTAH"],["ND","NAVY"],["ND","MICH"],["ARMY","AF"],["NAVY","AF"],["ARK","LSU"],["ARK","MIZ"],["VAN","TENN"],["OSU","PSU"],["PSU","PITT"],["CIN","LOU"],["HOU","RICE"],["MEM","UAB"],["APP","MRSH"],["BSU","FRES"],["SDSU","FRES"],["UTAH","USU"],["HAW","BSU"],["WMU","CMU"],["CMU","EMU"],["OHIO","M-OH"],["BUFF","AKR"],["TOL","BGSU"],["NAVY","SMU"],["TLSA","SMU"],["UCF","USF"]];
@@ -412,11 +416,7 @@ const RIVALS = {
   wnba:[["NY","LV"],["CHI","IND"],["CONN","NY"],["SEA","LA"],["MIN","LA"]],
   nhl:[["TOR","MTL"],["EDM","CGY"],["PIT","PHI"],["NYR","NYI"],["BOS","MTL"],["CHI","DET"],["NYR","NJ"],["NYI","NJ"],["PIT","WSH"],["TOR","OTT"],["MTL","OTT"],["TOR","BOS"],["CHI","STL"],["VAN","CGY"],["VAN","EDM"],["LA","ANA"],["COL","DET"],["TB","FLA"],["DAL","STL"],["NYR","PHI"]],
   epl:[["ARS","TOT"],["LIV","EVE"],["MAN","MNC"],["LIV","MAN"],["ARS","CHE"],["CHE","TOT"],["NEW","SUN"],["AVL","WOL"],["CRY","BHA"],["WHU","TOT"],["MAN","LEE"],["ARS","MAN"]],
-  laliga:[["RMA","BAR"],["ATM","RMA"],["SEV","BET"],["ATH","RSO"],["VAL","VIL"],["BAR","ESP"]],
-  seriea:[["INT","MIL"],["JUV","INT"],["ROMA","LAZ"],["JUV","TOR"],["GEN","SAMP"],["NAP","ROMA"],["JUV","MIL"]],
-  bund:[["BVB","S04"],["BAY","BVB"],["BAY","M05"],["KOL","M05"],["HSV","SVW"]],
-  ligue1:[["PSG","MAR"],["LYON","STE"],["LYON","MAR"],["NICE","MON"]],
-  ucl:[["RMA","BAR"],["ATM","RMA"],["INT","MIL"]],
+  ucl:[["RMA","BAR"],["ATM","RMA"],["INT","MIL"],["ARS","TOT"],["LIV","EVE"],["MAN","MNC"],["LIV","MAN"],["ARS","CHE"]],
   mls:[["LA","LAFC"],["SEA","POR"],["NYC","NY"],["ORL","MIA"],["CLB","CIN"],["SEA","VAN"],["POR","VAN"]],
 };
 // ESPN often names the rivalry in the game note ("Red River Rivalry", "Iron Bowl"...).
@@ -437,7 +437,7 @@ function isP4Game(g){ return isP4Team(g.home, g.lg) || isP4Team(g.away, g.lg) ||
 
 function rivalGame(g){ return isRivalry(g.lg, g.home.abbr, g.away.abbr) || RIVAL_NOTE.test(g.note || ""); }
 function isRivalry(lgId, a, b){
-  const list = RIVALS[lgId] || [];
+  const list = RIVALS[lgId] || RIVALS[LG_PARENT[lgId]] || [];
   return list.some(([x,y]) => (x===a && y===b) || (x===b && y===a));
 }
 
@@ -1010,15 +1010,39 @@ function timeCurve(g){
 }
 
 /* ---------- Fetching ---------- */
+/* Soccer feeds return a single day unless asked for a range: yesterday through the next week. */
+function ymd(d){ return d.getFullYear() + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0"); }
+function soccerRange(){ const a = new Date(Date.now() - 864e5), b = new Date(Date.now() + 7 * 864e5); return "dates=" + ymd(a) + "-" + ymd(b); }
+
+/* Premier League clubs (ESPN team ids), refreshed daily, for filtering cup games. */
+let eplTeams = new Set(store.get("pulse.eplTeams", {ids:[]}).ids);
+async function ensureEplTeams(){
+  const saved = store.get("pulse.eplTeams", {ids:[], ts:0});
+  if (saved.ids.length && Date.now() - saved.ts < 864e5) return;
+  try {
+    const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 8000);
+    const r = await fetch("https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/teams", {signal: ctl.signal});
+    clearTimeout(to);
+    if (!r.ok) return;
+    const j = await r.json();
+    const ids = ((j.sports || [])[0]?.leagues?.[0]?.teams || []).map(t => String(t.team && t.team.id)).filter(Boolean);
+    if (ids.length >= 18){ eplTeams = new Set(ids); store.set("pulse.eplTeams", {ids, ts: Date.now()}); }
+  } catch {}
+}
+
 async function fetchLeague(L){
-  const url = "https://site.api.espn.com/apis/site/v2/sports/" + L.path + "/scoreboard" + (L.q ? "?" + L.q : "");
+  const q = [L.q, L.kind === "soccer" ? soccerRange() : ""].filter(Boolean).join("&");
+  const url = "https://site.api.espn.com/apis/site/v2/sports/" + L.path + "/scoreboard" + (q ? "?" + q : "");
   const ctl = new AbortController();
   const to = setTimeout(() => ctl.abort(), 12000);
   try {
     const r = await fetch(url, {signal: ctl.signal});
     if (!r.ok) throw new Error("HTTP " + r.status);
     const j = await r.json();
-    return (j.events || []).map(ev => parseEvent(ev, L)).filter(Boolean);
+    let list = (j.events || []).map(ev => parseEvent(ev, L)).filter(Boolean);
+    if (L.id === "epl") for (const g of list){ eplTeams.add(String(g.home.id)); eplTeams.add(String(g.away.id)); }
+    if (L.eplOnly) list = list.filter(g => eplTeams.has(String(g.home.id)) || eplTeams.has(String(g.away.id)));
+    return list;
   } finally { clearTimeout(to); }
 }
 
@@ -1028,7 +1052,13 @@ async function refresh(){
   $("#refreshBtn").disabled = true;
   if (!games.length && !usingSample) setConn("", "Connecting…");
   const ids = LEAGUES.map(l => l.id);
-  const results = await Promise.allSettled(LEAGUES.map(fetchLeague));
+  await ensureEplTeams();
+  // Premier League first, so its clubs are known before the cup feeds are filtered.
+  const eplRes = await Promise.allSettled([fetchLeague(LG.epl)]);
+  const rest = await Promise.allSettled(LEAGUES.filter(l => l.id !== "epl").map(fetchLeague));
+  const byId = {epl: eplRes[0]};
+  LEAGUES.filter(l => l.id !== "epl").forEach((l, i) => byId[l.id] = rest[i]);
+  const results = ids.map(id => byId[id]);
   const next = [];
   let okCount = 0;
   leagueState = {};
@@ -1052,7 +1082,7 @@ async function refresh(){
     ingest(next);
     const t = new Date().toLocaleTimeString([], {hour:"numeric", minute:"2-digit", second:"2-digit"});
     const anyLive = next.some(g => g.state === "in");
-    const failed = LEAGUES.filter(l => !leagueState[l.id].ok).length;
+    const failed = CHIPS.filter(l => !leagueState[l.id].ok).length;
     setConn(anyLive ? "live" : "ok", (anyLive ? "Live" : "Connected") + " · updated " + t + (failed ? " · " + failed + " league" + (failed > 1 ? "s" : "") + " unavailable" : ""));
   }
   $("#sampleBanner").hidden = !usingSample;
@@ -1193,9 +1223,15 @@ function renderSubf(){
       <button type="button" data-p4="${id}" data-v="1" aria-pressed="${!!p4Only[id]}">Power 4 ${n4}</button></span>`;
   }).join("");
 }
+function chipState(id){
+  const kids = LEAGUES.filter(l => l.id === id || l.parent === id).map(l => leagueState[l.id]).filter(Boolean);
+  if (!kids.length) return null;
+  const main = leagueState[id];
+  return {ok: main ? main.ok : true, n: kids.reduce((a, k) => a + k.n, 0), live: kids.reduce((a, k) => a + k.live, 0)};
+}
 function renderChips(){
-  $("#chips").innerHTML = LEAGUES.map(l => {
-    const s = leagueState[l.id];
+  $("#chips").innerHTML = CHIPS.map(l => {
+    const s = chipState(l.id);
     const on = selected.has(l.id);
     const n = s ? (s.ok ? s.n : "!") : "";
     return `<button class="chip${s && !s.ok ? " err" : ""}" type="button" data-lg="${l.id}" aria-pressed="${on}" title="${s && !s.ok ? "Couldn't load this league" : ""}">
@@ -1206,7 +1242,7 @@ function renderChips(){
 function render(){
   $("#loading").hidden = true;
   renderChips();
-  const inLeagues = games.filter(g => selected.has(g.lg));
+  const inLeagues = games.filter(g => selected.has(chipOf(g.lg)));
   const p4ok = g => !p4Only[g.lg] || isP4Game(g);
   const vis = inLeagues.filter(g => p4ok(g) && (!upsetOnly || isUpset(g)));
   renderSubf();
@@ -1216,7 +1252,7 @@ function render(){
 
   // Pregame: today's games get their own section; later days are grouped by day.
   // Within a day: hype (highest first), then league in chip order.
-  const lgOrder = Object.fromEntries(LEAGUES.map((l, i) => [l.id, i]));
+  const lgOrder = Object.fromEntries(LEAGUES.map((l, i) => [l.id, CHIPS.findIndex(c => c.id === chipOf(l.id))]));
   const dayKey = g => { const d = new Date(g.date); return isNaN(d) ? "9999" : d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
   const now = new Date(), todayKey = dayKey({date: now});
   const week = Date.now() + 7 * 24 * 3600e3;
