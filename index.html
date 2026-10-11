@@ -1010,9 +1010,32 @@ function timeCurve(g){
 }
 
 /* ---------- Fetching ---------- */
-/* Soccer feeds return a single day unless asked for a range: yesterday through the next week. */
+/* Soccer feeds return one day at a time (ESPN rejects date ranges for them), so Pulse asks for
+   yesterday through the next six days, one request per day. Today refreshes every time;
+   other days are cached for ten minutes. */
 function ymd(d){ return d.getFullYear() + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0"); }
-function soccerRange(){ const a = new Date(Date.now() - 864e5), b = new Date(Date.now() + 7 * 864e5); return "dates=" + ymd(a) + "-" + ymd(b); }
+const dayCache = {};   // "league:yyyymmdd" -> {ts, events}
+async function getJSON(url){
+  const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 12000);
+  try { const r = await fetch(url, {signal: ctl.signal}); if (!r.ok) throw new Error("HTTP " + r.status); return await r.json(); }
+  finally { clearTimeout(to); }
+}
+async function soccerEvents(L){
+  const base = "https://site.api.espn.com/apis/site/v2/sports/" + L.path + "/scoreboard";
+  const today = ymd(new Date());
+  const days = Array.from({length: 8}, (_, i) => ymd(new Date(Date.now() + (i - 1) * 864e5)));
+  const out = await Promise.allSettled(days.map(async d => {
+    const key = L.id + ":" + d, c = dayCache[key];
+    if (c && d !== today && Date.now() - c.ts < 600e3) return c.events;
+    const j = await getJSON(base + "?dates=" + d + (L.q ? "&" + L.q : ""));
+    dayCache[key] = {ts: Date.now(), events: j.events || []};
+    return dayCache[key].events;
+  }));
+  if (!out.some(r => r.status === "fulfilled")) throw new Error("no soccer days loaded");
+  const seen = new Set(), events = [];
+  for (const r of out) if (r.status === "fulfilled") for (const ev of r.value) if (!seen.has(ev.id)){ seen.add(ev.id); events.push(ev); }
+  return events;
+}
 
 /* Premier League clubs (ESPN team ids), refreshed daily, for filtering cup games. */
 let eplTeams = new Set(store.get("pulse.eplTeams", {ids:[]}).ids);
@@ -1031,19 +1054,22 @@ async function ensureEplTeams(){
 }
 
 async function fetchLeague(L){
-  const q = [L.q, L.kind === "soccer" ? soccerRange() : ""].filter(Boolean).join("&");
-  const url = "https://site.api.espn.com/apis/site/v2/sports/" + L.path + "/scoreboard" + (q ? "?" + q : "");
+  if (L.kind === "soccer") return finishLeague(L, await soccerEvents(L));
+  const url = "https://site.api.espn.com/apis/site/v2/sports/" + L.path + "/scoreboard" + (L.q ? "?" + L.q : "");
   const ctl = new AbortController();
   const to = setTimeout(() => ctl.abort(), 12000);
   try {
     const r = await fetch(url, {signal: ctl.signal});
     if (!r.ok) throw new Error("HTTP " + r.status);
     const j = await r.json();
-    let list = (j.events || []).map(ev => parseEvent(ev, L)).filter(Boolean);
-    if (L.id === "epl") for (const g of list){ eplTeams.add(String(g.home.id)); eplTeams.add(String(g.away.id)); }
-    if (L.eplOnly) list = list.filter(g => eplTeams.has(String(g.home.id)) || eplTeams.has(String(g.away.id)));
-    return list;
+    return finishLeague(L, j.events || []);
   } finally { clearTimeout(to); }
+}
+function finishLeague(L, events){
+  let list = events.map(ev => parseEvent(ev, L)).filter(Boolean);
+  if (L.id === "epl") for (const g of list){ eplTeams.add(String(g.home.id)); eplTeams.add(String(g.away.id)); }
+  if (L.eplOnly) list = list.filter(g => eplTeams.has(String(g.home.id)) || eplTeams.has(String(g.away.id)));
+  return list;
 }
 
 async function refresh(){

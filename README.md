@@ -8,7 +8,7 @@ The whole app is one file, `index.html`. It pulls live scoreboards from ESPN's p
 
 NFL, NCAAF, MLB, NBA, WNBA, NCAAM, NHL, MLS, Premier League, Champions League.
 
-The Premier League button also includes FA Cup, Carabao Cup, Europa League and Conference League games that involve a Premier League club. Soccer feeds are requested for yesterday through the next week, since ESPN otherwise returns only a single day.
+The Premier League button also includes FA Cup, Carabao Cup, Europa League and Conference League games that involve a Premier League club. Soccer feeds are requested one day at a time for yesterday through the next six days (ESPN's soccer feeds return a single day and reject date ranges). Today's matches refresh every update; other days every ten minutes.
 
 ## Hosting on GitHub Pages
 
