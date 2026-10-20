@@ -411,8 +411,8 @@ const LEAGUES = [
 const CHIPS = LEAGUES.filter(l => !l.parent);
 /* One color per league (cups share the Premier League's). Checked for contrast on the dark cards
    and for separation between neighbouring leagues, including for colour-blind viewers. */
-const LEAGUE_COLOR = {nfl:"#4F8DFF", ncaaf:"#34D399", mlb:"#38BDF8", nba:"#F472B6", wnba:"#A3E635",
-  ncaam:"#C084FC", nhl:"#22D3EE", mls:"#818CF8", epl:"#2DD4BF", ucl:"#E879F9"};   // no yellows/reds: those mean "clock running out"
+const LEAGUE_COLOR = {nfl:"#38BDF8", ncaaf:"#22D3EE", mlb:"#34D399", nba:"#4F8DFF", wnba:"#F472B6",
+  ncaam:"#C084FC", nhl:"#F87171", mls:"#A3E635", epl:"#A3E635", ucl:"#A3E635"};   // all soccer shares lime
 const lgColor = id => LEAGUE_COLOR[LG_PARENT_OF(id)] || "#88909A";
 function LG_PARENT_OF(id){ const l = LEAGUES.find(x => x.id === id); return l && l.parent || id; }              // what the league buttons show
 const chipOf = id => (LG_PARENT[id] || id);

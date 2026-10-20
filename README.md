@@ -46,7 +46,7 @@ The empty `.nojekyll` file tells GitHub Pages to serve the files as they are.
 
 ## Flags and filters
 
-- **League colors:** each league has its own color, used for the league name on every game card and on its league button, so the buttons double as a key. Yellow and red are left out on purpose; they're reserved for the end-of-game clock. Colors live in `LEAGUE_COLOR`.
+- **League colors:** each league has its own color, used for the league name on every game card and on its league button, so the buttons double as a key. All soccer (MLS, Premier League and its cups, Champions League) shares one color. Colors live in `LEAGUE_COLOR`.
 - **Upcoming order:** Today and Coming up sort by day, then start time, then hype.
 
 - **Playoff series:** cards show the series score (from ESPN's series data) and flag elimination games with the team facing elimination, or "Game 7" / "Winner take all" when both are.
