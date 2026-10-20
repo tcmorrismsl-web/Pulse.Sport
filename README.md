@@ -46,6 +46,9 @@ The empty `.nojekyll` file tells GitHub Pages to serve the files as they are.
 
 ## Flags and filters
 
+- **League colors:** each league has its own color, used for the league name on every game card and on its league button, so the buttons double as a key. Yellow and red are left out on purpose; they're reserved for the end-of-game clock. Colors live in `LEAGUE_COLOR`.
+- **Upcoming order:** Today and Coming up sort by day, then start time, then hype.
+
 - **Playoff series:** cards show the series score (from ESPN's series data) and flag elimination games with the team facing elimination, or "Game 7" / "Winner take all" when both are.
 - **End-of-game clock:** in the final period or overtime, the game clock turns yellow under 4:00 and red under 2:00. Soccer turns yellow from 75′ and red from 85′ and in stoppage time. Baseball turns yellow from the 7th inning and red from the 9th, including extra innings. This shows on cards, chart labels and the game popup.
 - **Power 4 filter:** when NCAAF or NCAAM is on, an All / Power 4 toggle appears for each. Power 4 keeps games with at least one SEC, Big Ten, Big 12 or ACC team (2026-27 membership, in `P4`), plus Notre Dame.

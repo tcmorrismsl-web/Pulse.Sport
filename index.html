@@ -61,6 +61,10 @@ header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background
 .btn:hover{border-color:var(--faint)}
 .btn[disabled]{opacity:.5;cursor:default}
 
+/* Leagues: each chip carries its league color (same as the league name on game cards) */
+.chip.lgchip[aria-pressed="true"]{color:var(--lc);border-color:color-mix(in srgb,var(--lc) 35%,#262A35);background:color-mix(in srgb,var(--lc) 8%,#13181E)}
+.chip.lgchip[aria-pressed="true"] .n{color:#88909A;opacity:1}
+.chip.lgchip[aria-pressed="false"]{color:color-mix(in srgb,var(--lc) 45%,#4A505A)}
 /* Leagues */
 .leagues{margin-top:20px;display:grid;gap:10px}
 .row-head{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
@@ -186,7 +190,7 @@ section.block{margin-top:26px}
 .gc .tm.win .sc{color:#F4F7FD}
 .gc .tm.lose .nm,.gc .tm.lose .sc{color:#5C636E}
 .gc .meta{display:flex;align-items:center;gap:8px;min-width:0}
-.gc .lgn{font-size:10px;font-weight:600;color:#5C636E;white-space:nowrap}
+.gc .lgn{font-size:10px;font-weight:700;letter-spacing:.02em;color:#5C636E;white-space:nowrap}
 .gc .st{color:#88909A;font-size:11.5px;white-space:nowrap}
 .gc .net{font-size:10px;font-weight:600;line-height:13px;color:#BEE6D1;background:#0F1A16;border:1px solid #2D473A;border-radius:5px;padding:1px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .gc .ex{display:grid;justify-items:end;align-content:center;min-width:24px;margin-top:-7px}
@@ -404,7 +408,13 @@ const LEAGUES = [
   {id:"uel",   label:"Europa League",     parent:"epl", eplOnly:true, path:"soccer/uefa.europa",      kind:"soccer", periods:2, len:45, tm:1.3, pace:2.8, one:1},
   {id:"uecl",  label:"Conference League", parent:"epl", eplOnly:true, path:"soccer/uefa.europa.conf", kind:"soccer", periods:2, len:45, tm:1.3, pace:2.8, one:1},
 ];
-const CHIPS = LEAGUES.filter(l => !l.parent);              // what the league buttons show
+const CHIPS = LEAGUES.filter(l => !l.parent);
+/* One color per league (cups share the Premier League's). Checked for contrast on the dark cards
+   and for separation between neighbouring leagues, including for colour-blind viewers. */
+const LEAGUE_COLOR = {nfl:"#4F8DFF", ncaaf:"#34D399", mlb:"#38BDF8", nba:"#F472B6", wnba:"#A3E635",
+  ncaam:"#C084FC", nhl:"#22D3EE", mls:"#818CF8", epl:"#2DD4BF", ucl:"#E879F9"};   // no yellows/reds: those mean "clock running out"
+const lgColor = id => LEAGUE_COLOR[LG_PARENT_OF(id)] || "#88909A";
+function LG_PARENT_OF(id){ const l = LEAGUES.find(x => x.id === id); return l && l.parent || id; }              // what the league buttons show
 const chipOf = id => (LG_PARENT[id] || id);
 const LG = Object.fromEntries(LEAGUES.map(l => [l.id, l]));
 const LG_PARENT = Object.fromEntries(LEAGUES.filter(l => l.parent).map(l => [l.id, l.parent]));
@@ -1261,7 +1271,7 @@ function card(g){
     <div class="body">
       ${cardTeam(g.away, g, g.home)}
       ${cardTeam(g.home, g, g.away)}
-      <div class="meta"><span class="lgn">${lg}</span><span class="st"${crunchLevel(g) ? ` style="color:${CRUNCH[crunchLevel(g)]};font-weight:600"` : ""}>${esc(statusText(g))}</span>${g.broadcast ? `<span class="net">${esc(g.broadcast)}</span>` : ""}</div>
+      <div class="meta"><span class="lgn" style="color:${lgColor(g.lg)}">${lg}</span><span class="st"${crunchLevel(g) ? ` style="color:${CRUNCH[crunchLevel(g)]};font-weight:600"` : ""}>${esc(statusText(g))}</span>${g.broadcast ? `<span class="net">${esc(g.broadcast)}</span>` : ""}</div>
       ${(fl => fl ? `<div class="flags">${fl}</div>` : "")(cardFlags(g))}
     </div>
     <div class="ex"><b>${g.score}</b><small>${word}</small>${d}</div>
@@ -1290,7 +1300,7 @@ function renderChips(){
     const s = chipState(l.id);
     const on = selected.has(l.id);
     const n = s ? (s.ok ? s.n : "!") : "";
-    return `<button class="chip${s && !s.ok ? " err" : ""}" type="button" data-lg="${l.id}" aria-pressed="${on}" title="${s && !s.ok ? "Couldn't load this league" : ""}">
+    return `<button class="chip lgchip${s && !s.ok ? " err" : ""}" type="button" data-lg="${l.id}" aria-pressed="${on}" style="--lc:${lgColor(l.id)}" title="${s && !s.ok ? "Couldn't load this league" : ""}">
       ${s && s.live ? '<span class="ld" aria-label="live games"></span>' : ""}${esc(l.label)}${n !== "" ? `<span class="n">${n}</span>` : ""}</button>`;
   }).join("");
 }
@@ -1312,7 +1322,9 @@ function render(){
   const dayKey = g => { const d = new Date(g.date); return isNaN(d) ? "9999" : d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
   const now = new Date(), todayKey = dayKey({date: now});
   const week = Date.now() + 7 * 24 * 3600e3;
-  const byDay = (a, b) => dayKey(a).localeCompare(dayKey(b)) || (b.score - a.score) || (lgOrder[a.lg] - lgOrder[b.lg]);
+  // Sort: day, then start time, then hype (highest first).
+  const startT = g => { const t = new Date(g.date).getTime(); return isNaN(t) ? Infinity : t; };
+  const byDay = (a, b) => dayKey(a).localeCompare(dayKey(b)) || (startT(a) - startT(b)) || (b.score - a.score);
   const todayList = up.filter(g => dayKey(g) <= todayKey).sort(byDay);
   const upList = up.filter(g => dayKey(g) > todayKey && new Date(g.date) <= week).sort(byDay);
 
