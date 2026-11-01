@@ -193,8 +193,8 @@ section.block{margin-top:26px}
 .gc .lgn{font-size:10px;font-weight:700;letter-spacing:.02em;color:#5C636E;white-space:nowrap}
 .gc .st{color:#88909A;font-size:11.5px;white-space:nowrap}
 .gc .net .ytp{display:inline-block;width:0;height:0;border-left:6px solid #FF4E45;border-top:4px solid transparent;border-bottom:4px solid transparent;margin-right:5px;vertical-align:0}
-.btn.yttv{background:#FF0033;border-color:#FF0033;color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:7px}
-.btn.yttv:hover{background:#E6002E}
+.btn.watch{text-decoration:none;display:inline-flex;align-items:center;gap:7px}
+.btn.watch:hover{filter:brightness(.92)}
 .gc .net{font-size:10px;font-weight:600;line-height:13px;color:#BEE6D1;background:#0F1A16;border:1px solid #2D473A;border-radius:5px;padding:1px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .gc .ex{display:grid;justify-items:end;align-content:center;min-width:24px;margin-top:-7px}
 .gc .ex b{font-family:var(--display);font-weight:600;font-size:23px;line-height:1;color:var(--zc);font-variant-numeric:tabular-nums}
@@ -750,6 +750,17 @@ const YTTV_NET = /^(abc|cbs|nbc|fox|espn|espn2|espnu|espnews|sec ?network|secn|a
 function yttvNets(g){ return (g.broadcast || "").split(/\s*,\s*/).filter(n => YTTV_NET.test(n.trim())); }
 function yttvLink(g){ return g.state === "in" ? "https://tv.youtube.com/live" : "https://tv.youtube.com/"; }
 
+/* Where you can watch: YouTube TV plus streaming apps. Each link is the service's own web address,
+   which iPhone hands to the installed app (none of them offer per-game links). */
+const WATCH = [
+  {id:"yttv",    label:"YouTube TV",  color:"#FF0033", text:"#fff",    nets: g => yttvNets(g), url: g => yttvLink(g)},
+  {id:"prime",   label:"Prime Video", color:"#1A98FF", text:"#fff",    nets: g => netsMatching(g, /prime video|amazon/i), url: () => "https://www.primevideo.com/"},
+  {id:"netflix", label:"Netflix",     color:"#E50914", text:"#fff",    nets: g => netsMatching(g, /netflix/i),            url: () => "https://www.netflix.com/"},
+  {id:"peacock", label:"Peacock",     color:"#F2F2F2", text:"#0A0D12", nets: g => netsMatching(g, /peacock/i),            url: () => "https://www.peacocktv.com/"},
+];
+function netsMatching(g, re){ return (g.broadcast || "").split(/\s*,\s*/).filter(n => re.test(n)); }
+function watchOptions(g){ return WATCH.map(w => ({w, nets: w.nets(g)})).filter(x => x.nets.length); }
+
 /* Team name for a side ("home" / "away"), for labels like "Red card · Spurs". */
 const sideName = (g, side) => side === "home" ? g.home.name : side === "away" ? g.away.name : "";
 
@@ -1281,7 +1292,7 @@ function card(g){
     <div class="body">
       ${cardTeam(g.away, g, g.home)}
       ${cardTeam(g.home, g, g.away)}
-      <div class="meta"><span class="lgn" style="color:${lgColor(g.lg)}">${lg}</span><span class="st"${crunchLevel(g) ? ` style="color:${CRUNCH[crunchLevel(g)]};font-weight:600"` : ""}>${esc(statusText(g))}</span>${g.broadcast ? `<span class="net${yttvNets(g).length ? " yt" : ""}"${yttvNets(g).length ? ' title="On YouTube TV"' : ""}>${yttvNets(g).length ? '<i class="ytp" aria-label="On YouTube TV"></i>' : ""}${esc(g.broadcast)}</span>` : ""}</div>
+      <div class="meta"><span class="lgn" style="color:${lgColor(g.lg)}">${lg}</span><span class="st"${crunchLevel(g) ? ` style="color:${CRUNCH[crunchLevel(g)]};font-weight:600"` : ""}>${esc(statusText(g))}</span>${g.broadcast ? (o => `<span class="net"${o.length ? ` title="Watch on ${esc(o.map(x => x.w.label).join(", "))}"` : ""}>${o.length ? `<i class="ytp" style="border-left-color:${o[0].w.color}" aria-label="Watch on ${esc(o[0].w.label)}"></i>` : ""}${esc(g.broadcast)}</span>`)(watchOptions(g)) : ""}</div>
       ${(fl => fl ? `<div class="flags">${fl}</div>` : "")(cardFlags(g))}
     </div>
     <div class="ex"><b>${g.score}</b><small>${word}</small>${d}</div>
@@ -1706,7 +1717,7 @@ function fillGame(g){
     ${g.odds && g.odds.text ? `<div class="note" style="margin-top:6px">Line: ${esc(g.odds.text)}</div>` : ""}</div>
     ${g.venue || g.broadcast ? `<div class="note">${esc([g.venue, g.broadcast].filter(Boolean).join(" · "))}</div>` : ""}
     <div class="m-foot">
-      ${yttvNets(g).length && g.state !== "post" ? `<a class="btn yttv" href="${yttvLink(g)}" target="_blank" rel="noopener" title="Opens the YouTube TV app${g.state === "in" ? " to the Live guide" : ""}"><span aria-hidden="true">▶</span>${g.state === "in" ? "Watch" : "Open"} on YouTube TV · ${esc(yttvNets(g)[0])}</a>` : ""}
+      ${g.state !== "post" ? watchOptions(g).map(({w, nets}) => `<a class="btn watch" style="background:${w.color};border-color:${w.color};color:${w.text}" href="${w.url(g)}" target="_blank" rel="noopener" title="Opens the ${esc(w.label)} app"><span aria-hidden="true">▶</span>${g.state === "in" ? "Watch" : "Open"} on ${esc(w.label)}${w.id === "yttv" ? " · " + esc(nets[0]) : ""}</a>`).join("") : ""}
       <a class="btn primary" href="${esc(g.link)}" target="_blank" rel="noopener">Open on ESPN ↗</a>
       <button class="btn" type="button" data-close>Close</button>
     </div>`;

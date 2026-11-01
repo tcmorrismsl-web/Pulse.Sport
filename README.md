@@ -55,9 +55,9 @@ The empty `.nojekyll` file tells GitHub Pages to serve the files as they are.
 - **Final: Today / This week:** a dropdown on the Final section. This week fetches the previous six days of finished games (one request per league per day, cached for an hour) and groups them by day, newest first.
 - **Live** and **Upsets** buttons next to the league chips narrow the page to games in progress, or to games where the underdog is leading or won.
 
-## YouTube TV
+## Where to watch
 
-Games on a network YouTube TV carries (ABC, CBS, NBC, FOX, the ESPN networks, SEC/ACC/Big Ten Network, FS1, TNT, TBS, USA, NFL/MLB/NBA TV and similar) show a red ▶ on their network badge. The game popup adds a **Watch on YouTube TV** button that opens the YouTube TV app, to the Live guide for games in progress. Streaming-only outlets (ESPN+, Peacock, Paramount+, Prime Video, Apple TV, Netflix) don't count. The list is `YTTV_NET`.
+Games on a network YouTube TV carries (ABC, CBS, NBC, FOX, the ESPN networks, SEC/ACC/Big Ten Network, FS1, TNT, TBS, USA, NFL/MLB/NBA TV and similar) show a red ▶ on their network badge. The game popup adds a **Watch on YouTube TV** button that opens the YouTube TV app, to the Live guide for games in progress. Prime Video, Netflix and Peacock games get their own ▶ (blue, red, white) and a matching button that opens that app. None of these services offer per-game links, so each button opens the app itself. Services live in `WATCH`; YouTube TV's channel list is `YTTV_NET`.
 
 ## Where to tune it
 
