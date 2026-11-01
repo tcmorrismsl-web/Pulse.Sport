@@ -85,6 +85,7 @@ header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background
 .ups-chip[aria-pressed="true"]{background:#2A2016;color:#F2D4B4;border-color:#6B4C2F}
 .range{margin-left:auto;align-self:center;appearance:none;-webkit-appearance:none;background:#13181E url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%237F8792' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 10px center;border:1px solid #262A35;border-radius:8px;color:#C9CED6;font-family:var(--body);font-size:12px;font-weight:500;padding:5px 28px 5px 10px;cursor:pointer}
 .range:hover{border-color:#343A44}
+.build{max-width:1180px;margin:28px auto 0;color:#3E444D;font-size:10.5px;text-align:center}
 .subf{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:2px}
 .subf .lab{font-size:11px;font-weight:600;color:#5A606B;letter-spacing:.04em;margin-right:-2px}
 .seg{display:inline-flex;border:1px solid #20242C;border-radius:999px;overflow:hidden}
@@ -341,6 +342,8 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
     <div class="days" id="finDays" hidden></div>
   </section>
 </main>
+
+<p class="build" id="build">Pulse build 2026-11-01 · YouTube TV, RedZone, Prime, Netflix, Peacock</p>
 
 <dialog id="howDlg" aria-labelledby="howTitle">
   <div class="m-in how">
@@ -602,6 +605,20 @@ function parseSeries(comp, home, away, L){
     elim: !sr.completed && (homeOut || awayOut), decider: !sr.completed && homeOut && awayOut,
     facing: homeOut && !awayOut ? "home" : awayOut && !homeOut ? "away" : null};
 }
+/* Every TV/streaming outlet ESPN lists for a game, from all of its fields, de-duplicated.
+   (Sunday NFL games often carry the network outside broadcasts[0].) Radio is skipped. */
+function networksOf(comp){
+  const out = [];
+  const add = n => { n = String(n || "").trim(); if (n && !out.some(x => x.toLowerCase() === n.toLowerCase())) out.push(n); };
+  for (const b of comp.broadcasts || []) if (!/radio/i.test(b.market || "") ) for (const n of b.names || []) add(n);
+  for (const gb of comp.geoBroadcasts || []){
+    const type = (gb.type && (gb.type.shortName || gb.type.name)) || "";
+    if (/radio/i.test(type)) continue;
+    add(gb.media && (gb.media.shortName || gb.media.name));
+  }
+  if (!out.length && typeof comp.broadcast === "string") comp.broadcast.split(/\s*[,/]\s*/).forEach(add);
+  return out.join(", ");
+}
 function parseEvent(ev, L){
   const comp = ev.competitions && ev.competitions[0];
   if (!comp) return null;
@@ -631,7 +648,7 @@ function parseEvent(ev, L){
     series: parseSeries(comp, home, away, L),
     preseason: ev.season && ev.season.type === 1,
     venue: comp.venue && comp.venue.fullName || "",
-    broadcast: (comp.broadcasts && comp.broadcasts[0] && comp.broadcasts[0].names || []).join(", "),
+    broadcast: networksOf(comp),
     link: link ? link.href : "https://www.espn.com/" + L.path.split("/")[1] + "/game/_/gameId/" + ev.id,
   };
 }
@@ -747,7 +764,20 @@ const CRUNCH = ["", "#E8C25A", "#FF5A64"];
    (ESPN+, Peacock, Paramount+, Prime Video, Apple TV, Netflix, HBO Max, Disney+) don't count.
    YouTube TV has no per-game links, so the button opens the app: the Live guide for games in progress. */
 const YTTV_NET = /^(abc|cbs|nbc|fox|espn|espn2|espnu|espnews|sec ?network|secn|acc ?network|accn|acc network extra|big ten network|btn|cbs sports network|cbssn|fs1|fs2|tnt|tbs|trutv|usa|usa network|nfl network|nfl net|nfln|mlb network|mlbn|nba tv|nhl network|golf|golf channel|tennis channel|telemundo|universo|nbc sports|nfl redzone|redzone)$/i;
-function yttvNets(g){ return (g.broadcast || "").split(/\s*,\s*/).filter(n => YTTV_NET.test(n.trim())); }
+function yttvNets(g){
+  const nets = (g.broadcast || "").split(/\s*,\s*/).filter(n => YTTV_NET.test(n.trim()));
+  if (redZoneGame(g) && !nets.some(n => /redzone/i.test(n))) nets.push("RedZone");
+  return nets;
+}
+/* NFL RedZone (YouTube TV add-on) whips around the Sunday afternoon games: CBS/FOX kickoffs
+   between noon and 5 PM Eastern on a Sunday. Not prime time, not the early international games. */
+function redZoneGame(g){
+  if (g.lg !== "nfl" || g.state === "post") return false;
+  const d = new Date(g.date); if (isNaN(d)) return false;
+  const parts = Object.fromEntries(new Intl.DateTimeFormat("en-US", {timeZone:"America/New_York", weekday:"short", hour:"numeric", hour12:false}).formatToParts(d).map(p => [p.type, p.value]));
+  const hour = Number(parts.hour) % 24;
+  return parts.weekday === "Sun" && hour >= 12 && hour < 17 && /\b(CBS|FOX)\b/i.test(g.broadcast || "");
+}
 function yttvLink(g){ return g.state === "in" ? "https://tv.youtube.com/live" : "https://tv.youtube.com/"; }
 
 /* Where you can watch: YouTube TV plus streaming apps. Each link is the service's own web address,
@@ -1717,7 +1747,7 @@ function fillGame(g){
     ${g.odds && g.odds.text ? `<div class="note" style="margin-top:6px">Line: ${esc(g.odds.text)}</div>` : ""}</div>
     ${g.venue || g.broadcast ? `<div class="note">${esc([g.venue, g.broadcast].filter(Boolean).join(" · "))}</div>` : ""}
     <div class="m-foot">
-      ${g.state !== "post" ? watchOptions(g).map(({w, nets}) => `<a class="btn watch" style="background:${w.color};border-color:${w.color};color:${w.text}" href="${w.url(g)}" target="_blank" rel="noopener" title="Opens the ${esc(w.label)} app"><span aria-hidden="true">▶</span>${g.state === "in" ? "Watch" : "Open"} on ${esc(w.label)}${w.id === "yttv" ? " · " + esc(nets[0]) : ""}</a>`).join("") : ""}
+      ${g.state !== "post" ? watchOptions(g).map(({w, nets}) => `<a class="btn watch" style="background:${w.color};border-color:${w.color};color:${w.text}" href="${w.url(g)}" target="_blank" rel="noopener" title="Opens the ${esc(w.label)} app"><span aria-hidden="true">▶</span>${g.state === "in" ? "Watch" : "Open"} on ${esc(w.label)}${w.id === "yttv" ? " · " + esc(nets.slice(0, 2).join(" / ")) : ""}</a>`).join("") : ""}
       <a class="btn primary" href="${esc(g.link)}" target="_blank" rel="noopener">Open on ESPN ↗</a>
       <button class="btn" type="button" data-close>Close</button>
     </div>`;
