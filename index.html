@@ -765,9 +765,7 @@ const CRUNCH = ["", "#E8C25A", "#FF5A64"];
    YouTube TV has no per-game links, so the button opens the app: the Live guide for games in progress. */
 const YTTV_NET = /^(abc|cbs|nbc|fox|espn|espn2|espnu|espnews|sec ?network|secn|acc ?network|accn|acc network extra|big ten network|btn|cbs sports network|cbssn|fs1|fs2|tnt|tbs|trutv|usa|usa network|nfl network|nfl net|nfln|mlb network|mlbn|nba tv|nhl network|golf|golf channel|tennis channel|telemundo|universo|nbc sports|nfl redzone|redzone)$/i;
 function yttvNets(g){
-  const nets = (g.broadcast || "").split(/\s*,\s*/).filter(n => YTTV_NET.test(n.trim()));
-  if (redZoneGame(g) && !nets.some(n => /redzone/i.test(n))) nets.push("RedZone");
-  return nets;
+  return (g.broadcast || "").split(/\s*,\s*/).filter(n => YTTV_NET.test(n.trim()) && !/redzone/i.test(n));
 }
 /* NFL RedZone (YouTube TV add-on) whips around the Sunday afternoon games: CBS/FOX kickoffs
    between noon and 5 PM Eastern on a Sunday. Not prime time, not the early international games. */
@@ -782,7 +780,12 @@ function yttvLink(g){ return g.state === "in" ? "https://tv.youtube.com/live" : 
 
 /* Where you can watch: YouTube TV plus streaming apps. Each link is the service's own web address,
    which iPhone hands to the installed app (none of them offer per-game links). */
+/* Direct YouTube TV channel pages (from the user's own YouTube TV). Add more as "network: url". */
+const YTTV_CHANNEL = {
+  redzone: "https://tv.youtube.com/browse/UCBgpmU5ljAM7y-obdWt_m5A",
+};
 const WATCH = [
+  {id:"redzone", label:"NFL RedZone", color:"#C8102E", text:"#fff",  nets: g => redZoneGame(g) ? ["RedZone"] : [], url: () => YTTV_CHANNEL.redzone},
   {id:"yttv",    label:"YouTube TV",  color:"#FF0033", text:"#fff",    nets: g => yttvNets(g), url: g => yttvLink(g)},
   {id:"prime",   label:"Prime Video", color:"#1A98FF", text:"#fff",    nets: g => netsMatching(g, /prime video|amazon/i), url: () => "https://www.primevideo.com/"},
   {id:"netflix", label:"Netflix",     color:"#E50914", text:"#fff",    nets: g => netsMatching(g, /netflix/i),            url: () => "https://www.netflix.com/"},
@@ -1747,7 +1750,7 @@ function fillGame(g){
     ${g.odds && g.odds.text ? `<div class="note" style="margin-top:6px">Line: ${esc(g.odds.text)}</div>` : ""}</div>
     ${g.venue || g.broadcast ? `<div class="note">${esc([g.venue, g.broadcast].filter(Boolean).join(" · "))}</div>` : ""}
     <div class="m-foot">
-      ${g.state !== "post" ? watchOptions(g).map(({w, nets}) => `<a class="btn watch" style="background:${w.color};border-color:${w.color};color:${w.text}" href="${w.url(g)}" target="_blank" rel="noopener" title="Opens the ${esc(w.label)} app"><span aria-hidden="true">▶</span>${g.state === "in" ? "Watch" : "Open"} on ${esc(w.label)}${w.id === "yttv" ? " · " + esc(nets.slice(0, 2).join(" / ")) : ""}</a>`).join("") : ""}
+      ${g.state !== "post" ? watchOptions(g).map(({w, nets}) => `<a class="btn watch" style="background:${w.color};border-color:${w.color};color:${w.text}" href="${w.url(g)}" target="_blank" rel="noopener" title="Opens the ${esc(w.label)} app"><span aria-hidden="true">▶</span>${w.id === "redzone" ? (g.state === "in" ? "Watch NFL RedZone" : "Open NFL RedZone") : (g.state === "in" ? "Watch" : "Open") + " on " + esc(w.label)}${w.id === "yttv" ? " · " + esc(nets.slice(0, 2).join(" / ")) : ""}</a>`).join("") : ""}
       <a class="btn primary" href="${esc(g.link)}" target="_blank" rel="noopener">Open on ESPN ↗</a>
       <button class="btn" type="button" data-close>Close</button>
     </div>`;
