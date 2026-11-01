@@ -783,10 +783,20 @@ function yttvLink(g){ return g.state === "in" ? "https://tv.youtube.com/live" : 
 /* Direct YouTube TV channel pages (from the user's own YouTube TV). Add more as "network: url". */
 const YTTV_CHANNEL = {
   redzone: "https://tv.youtube.com/browse/UCBgpmU5ljAM7y-obdWt_m5A",
+  espn:    "https://tv.youtube.com/browse/UCakwQ1jKQnYJcUMghvnp-Yw",
+  // espn2: (link pending; the one sent matched ESPN's)
+  cbs:     "https://tv.youtube.com/browse/UC3iq21tjzMRvx75UItgtCSg",   // local affiliates: these are the user's own market
+  nbc:     "https://tv.youtube.com/browse/UCSozVV_DLRuU3z4c88Fwa3g",
+  fox:     "https://tv.youtube.com/browse/UCmqqmrOV_gdhq737btJQNdQ",
+  abc:     "https://tv.youtube.com/browse/UCR_vKwOOcqnoe7hmGmWydNw",
 };
+// The first network on the game that has a direct channel link; otherwise the Live guide.
+function yttvChannelFor(g){ for (const n of yttvNets(g)){ const u = YTTV_CHANNEL[n.trim().toLowerCase()]; if (u) return {net: n.trim(), url: u}; } return null; }
 const WATCH = [
   {id:"redzone", label:"NFL RedZone", color:"#C8102E", text:"#fff",  nets: g => redZoneGame(g) ? ["RedZone"] : [], url: () => YTTV_CHANNEL.redzone},
-  {id:"yttv",    label:"YouTube TV",  color:"#FF0033", text:"#fff",    nets: g => yttvNets(g), url: g => yttvLink(g)},
+  {id:"yttv",    label:"YouTube TV",  color:"#FF0033", text:"#fff",
+    nets: g => { const c = yttvChannelFor(g), n = yttvNets(g); return c ? [c.net, ...n.filter(x => x !== c.net)] : n; },
+    url: g => { const c = yttvChannelFor(g); return c ? c.url : yttvLink(g); }},
   {id:"prime",   label:"Prime Video", color:"#1A98FF", text:"#fff",    nets: g => netsMatching(g, /prime video|amazon/i), url: () => "https://www.primevideo.com/"},
   {id:"netflix", label:"Netflix",     color:"#E50914", text:"#fff",    nets: g => netsMatching(g, /netflix/i),            url: () => "https://www.netflix.com/"},
   {id:"peacock", label:"Peacock",     color:"#F2F2F2", text:"#0A0D12", nets: g => netsMatching(g, /peacock/i),            url: () => "https://www.peacocktv.com/"},
