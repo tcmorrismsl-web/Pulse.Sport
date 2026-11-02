@@ -86,6 +86,18 @@ header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background
 .range{margin-left:auto;align-self:center;appearance:none;-webkit-appearance:none;background:#13181E url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%237F8792' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 10px center;border:1px solid #262A35;border-radius:8px;color:#C9CED6;font-family:var(--body);font-size:12px;font-weight:500;padding:5px 28px 5px 10px;cursor:pointer}
 .range:hover{border-color:#343A44}
 .build{max-width:1180px;margin:28px auto 0;color:#3E444D;font-size:10.5px;text-align:center}
+.favstar{color:#F5C451;margin-right:4px}
+.favlist{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.favchip{display:inline-flex;align-items:center;gap:6px;border:1px solid #3A3220;background:#18150F;color:#E8D3A0;border-radius:999px;padding:3px 6px 3px 9px;font-family:var(--body);font-size:11.5px;font-weight:600;cursor:default}
+.favchip img{width:14px;height:14px;object-fit:contain}
+.favchip button{background:none;border:0;color:#8A7A55;font-size:13px;line-height:1;cursor:pointer;padding:0 2px}
+.favchip button:hover{color:#F5C451}
+.fav-empty{color:var(--muted);font-size:13px;margin:0 0 6px}
+.gc.isfav{border-color:#4A3F22;box-shadow:inset 0 0 0 1px rgba(245,196,81,.08)}
+.gc .tm .fv{color:#F5C451;font-size:11px;margin-left:5px;vertical-align:1px}
+.favbtn{margin-top:4px;background:transparent;border:1px solid #2C313A;border-radius:999px;color:#88909A;font-family:var(--body);font-size:11px;font-weight:600;padding:3px 10px;cursor:pointer;white-space:nowrap}
+.favbtn:hover{border-color:#4A3F22;color:#E8D3A0}
+.favbtn[aria-pressed="true"]{border-color:#6B5A2A;background:#1E1910;color:#F5C451}
 .subf{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:2px}
 .subf .lab{font-size:11px;font-weight:600;color:#5A606B;letter-spacing:.04em;margin-right:-2px}
 .seg{display:inline-flex;border:1px solid #20242C;border-radius:999px;overflow:hidden}
@@ -310,6 +322,12 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
 
   <div id="loading" class="loading">Loading scoreboards…</div>
 
+  <section class="block" id="favSec" hidden>
+    <div class="sec-head"><h2 class="sec-title"><button class="tog" type="button" data-tog="favs" aria-expanded="true"><span class="chev" aria-hidden="true"></span><span class="favstar" aria-hidden="true">★</span> My teams</button></h2><span class="count" id="favCount"></span></div>
+    <div class="favlist" id="favList"></div>
+    <div class="grid cards" id="favGrid"></div>
+  </section>
+
   <section class="block" id="liveSec" hidden>
     <div class="lc-card">
       <div class="lc-top">
@@ -472,6 +490,18 @@ let liveOnly = !!store.get("pulse.liveOnly", false);
 let upsetOnly = !!store.get("pulse.upsetOnly", false);
 let finRange = store.get("pulse.finRange", "today") === "week" ? "week" : "today";
 let weekLoading = false;
+/* Favorite teams (saved on this device). Key = sport + ESPN team id; soccer clubs share one key
+   across Premier League, cups and Champions League. */
+let favs = store.get("pulse.favs", {});
+function favKey(g, t){ const L = LG[g.lg]; return (L.kind === "soccer" ? "soccer" : g.lg) + ":" + t.id; }
+const isFav = (g, t) => !!favs[favKey(g, t)];
+const isFavGame = g => isFav(g, g.home) || isFav(g, g.away);
+function toggleFav(g, side){
+  const t = g[side], k = favKey(g, t);
+  if (favs[k]) delete favs[k];
+  else favs[k] = {name: t.name, abbr: t.abbr, logo: t.logo, lg: chipOf(g.lg)};
+  favs = {...favs}; store.set("pulse.favs", favs);
+}
 let p4Only = store.get("pulse.p4", {ncaaf:false, ncaam:false});
 const isUpset = g => !!(g.parts && g.parts.upset > 4);
 let history = store.get("pulse.hist", {});       // gameId -> {ts, pts:[{p,m}]}
@@ -1302,7 +1332,7 @@ function cardTeam(t, g, other){
   const showScore = g.state !== "pre";
   const cls = g.state === "post" ? (t.score > other.score ? " win" : t.score < other.score ? " lose" : "") : "";
   return `<div class="tm${cls}">${logoHTML(t, 24)}
-    <span class="nm">${t.rank ? `<span class="rk">${t.rank}</span>` : ""}${esc(t.name)}${!showScore && t.record ? `<span class="rec">${esc(t.record)}</span>` : ""}</span>
+    <span class="nm">${t.rank ? `<span class="rk">${t.rank}</span>` : ""}${esc(t.name)}${isFav(g, t) ? '<span class="fv" aria-label="favorite">★</span>' : ""}${!showScore && t.record ? `<span class="rec">${esc(t.record)}</span>` : ""}</span>
     <span class="sc">${showScore ? t.score : ""}</span></div>`;
 }
 /* Matchup flags shown on every card: rivalry, ranked matchup, postseason, upset, overtime. */
@@ -1330,7 +1360,7 @@ function card(g){
   }
   const word = g.state === "pre" ? "hype" : g.state === "post" ? "final" : "now";
   const lg = esc(L.label) + (g.group && /^ncaa/.test(g.lg) ? " · " + esc(g.group) : "");
-  return `<button class="gc${g.state === "pre" ? " pre" : ""}" type="button" data-id="${esc(g.id)}" style="--zc:${col}" aria-label="${esc(g.away.name)} at ${esc(g.home.name)}, excitement ${g.score}">
+  return `<button class="gc${g.state === "pre" ? " pre" : ""}${isFavGame(g) ? " isfav" : ""}" type="button" data-id="${esc(g.id)}" style="--zc:${col}" aria-label="${esc(g.away.name)} at ${esc(g.home.name)}, excitement ${g.score}">
     <span class="bar"></span>
     <div class="body">
       ${cardTeam(g.away, g, g.home)}
@@ -1369,6 +1399,29 @@ function renderChips(){
   }).join("");
 }
 
+/* My teams: every game for a followed team, whatever the league buttons or filters say.
+   Live first (hottest), then upcoming by start time (next 7 days), then today's finals. */
+function renderFavs(){
+  const keys = Object.keys(favs);
+  $("#favSec").hidden = !keys.length;
+  if (!keys.length) return;
+  const mine = games.filter(isFavGame);
+  const t = g => new Date(g.date).getTime() || 0;
+  const today = new Date().toDateString();
+  const list = [
+    ...mine.filter(g => g.state === "in").sort((a, b) => b.score - a.score),
+    ...mine.filter(g => g.state === "pre" && t(g) <= Date.now() + 7 * 864e5).sort((a, b) => t(a) - t(b)),
+    ...mine.filter(g => g.state === "post" && new Date(g.date).toDateString() === today).sort((a, b) => b.score - a.score),
+  ];
+  const open = isOpen("favs", true);
+  $('[data-tog="favs"]').setAttribute("aria-expanded", open);
+  $("#favCount").textContent = keys.length + " team" + (keys.length > 1 ? "s" : "") + (list.length ? " · " + list.length + " game" + (list.length > 1 ? "s" : "") : "");
+  $("#favList").hidden = $("#favGrid").hidden = !open;
+  $("#favList").innerHTML = open ? keys.map(k => { const f = favs[k];
+    return `<span class="favchip" style="border-color:color-mix(in srgb,${lgColor(f.lg)} 30%,#3A3220)">${f.logo ? `<img src="${esc(f.logo)}" alt="">` : ""}${esc(f.name)}<button type="button" data-unfav="${esc(k)}" aria-label="Stop following ${esc(f.name)}">×</button></span>`; }).join("") +
+    (list.length ? "" : `<p class="fav-empty" style="flex-basis:100%">No games for your teams in the next 7 days.</p>`) : "";
+  $("#favGrid").innerHTML = open ? capped(list, "favs") : "";
+}
 function render(){
   $("#loading").hidden = true;
   renderChips();
@@ -1399,6 +1452,7 @@ function render(){
   $("#liveEmpty").textContent = (!selected.size ? "Pick a league above to see games." : upsetOnly ? "No live upsets right now." : "No live games in your leagues right now.") + (finAll.length || upList.length || todayList.length ? (liveOnly ? " Turn off the Live filter to see upcoming and finished games." : " Finished and upcoming games are below.") : "");
   $("#liveCount").textContent = live.length ? live.length + " game" + (live.length > 1 ? "s" : "") + " live" : "";
   liveList = live;
+  renderFavs();
   drawLive();
 
   setSection("today", todayList, "#todaySec", "#todayGrid", true);
@@ -1743,9 +1797,9 @@ function fillGame(g){
       <button class="x" type="button" data-close aria-label="Close">✕</button>
     </div>
     <div class="score-line">
-      <div class="side">${logoHTML(g.away, 36)}<span class="nm">${g.away.rank ? "#" + g.away.rank + " " : ""}${esc(g.away.name)}</span><span class="note">${esc(g.away.record)}</span></div>
+      <div class="side">${logoHTML(g.away, 36)}<span class="nm">${g.away.rank ? "#" + g.away.rank + " " : ""}${esc(g.away.name)}</span><span class="note">${esc(g.away.record)}</span><button class="favbtn" type="button" data-fav="away" aria-pressed="${isFav(g, g.away)}">${isFav(g, g.away) ? "★ Following" : "☆ Follow"}</button></div>
       <div class="mid">${g.state === "pre" ? "vs" : `<span class="big">${g.away.score}–${g.home.score}</span>`}<div${crunchLevel(g) ? ` style="color:${CRUNCH[crunchLevel(g)]};font-weight:700"` : ""}>${esc(statusText(g))}</div>${g.series ? `<div style="text-transform:none;letter-spacing:0;margin-top:3px">${esc(g.series.summary)}${g.series.decider ? " · winner take all" : g.series.elim ? " · " + esc(sideName(g, g.series.facing) || "a team") + " facing elimination" : ""}</div>` : ""}</div>
-      <div class="side">${logoHTML(g.home, 36)}<span class="nm">${g.home.rank ? "#" + g.home.rank + " " : ""}${esc(g.home.name)}</span><span class="note">${esc(g.home.record)}</span></div>
+      <div class="side">${logoHTML(g.home, 36)}<span class="nm">${g.home.rank ? "#" + g.home.rank + " " : ""}${esc(g.home.name)}</span><span class="note">${esc(g.home.record)}</span><button class="favbtn" type="button" data-fav="home" aria-pressed="${isFav(g, g.home)}">${isFav(g, g.home) ? "★ Following" : "☆ Follow"}</button></div>
     </div>
     <div class="big-dial" style="--z:${z.c};--v:${g.score}">
       <div class="dial"><b>${g.score}</b></div>
@@ -1877,6 +1931,10 @@ document.addEventListener("click", e => {
     const again = document.querySelector(`[data-tog="${CSS.escape(key)}"]`); if (again) again.focus();
     return;
   }
+  const fb = e.target.closest("[data-fav]");
+  if (fb && openId){ const g = games.find(x => x.id === openId); if (g){ toggleFav(g, fb.dataset.fav); render(); fillGame(g); } return; }
+  const uf = e.target.closest("[data-unfav]");
+  if (uf){ delete favs[uf.dataset.unfav]; favs = {...favs}; store.set("pulse.favs", favs); render(); return; }
   const mb = e.target.closest("[data-more]");
   if (mb){ const k = mb.dataset.more; showAll.has(k) ? showAll.delete(k) : showAll.add(k); render(); return; }
   const g = e.target.closest(".gc");

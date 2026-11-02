@@ -44,6 +44,10 @@ The empty `.nojekyll` file tells GitHub Pages to serve the files as they are.
 
   Scores above 70 are compressed, so anything over 90 is rare.
 
+## My teams
+
+Open any game and tap **☆ Follow** under a team. Followed teams get a gold ★ next to their name on every card, and their games get a gold outline. A **★ My teams** section at the top shows every game for those teams, whatever the league buttons or filters are set to: live games first, then the next 7 days by start time, then today's finals. Tap × on a team chip to stop following. Favorites are saved on this device. A soccer club followed once covers its Premier League, cup and Champions League games.
+
 ## Flags and filters
 
 - **League colors:** each league has its own color, used for the league name on every game card and on its league button, so the buttons double as a key. All soccer (MLS, Premier League and its cups, Champions League) shares one color. Colors live in `LEAGUE_COLOR`.
