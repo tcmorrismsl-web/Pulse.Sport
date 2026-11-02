@@ -379,7 +379,7 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
   </section>
 </main>
 
-<p class="build" id="build">Pulse build 2026-11-01 · YouTube TV, RedZone, Prime, Netflix, Peacock</p>
+<p class="build" id="build">Pulse build 2026-11-02b · My teams picker</p>
 
 <dialog id="howDlg" aria-labelledby="howTitle">
   <div class="m-in how">
@@ -1459,13 +1459,28 @@ function renderFavs(){
 let tdLeague = "nfl";
 async function teamsFor(id){
   const L = LG[id], key = "pulse.teams." + id, c = store.get(key, null);
-  if (c && Date.now() - c.ts < 7 * 864e5 && c.teams.length) return c.teams;
+  if (c && Date.now() - c.ts < 7 * 864e5 && c.teams.length >= 10) return c.teams;
+  const base = "https://site.api.espn.com/apis/site/v2/sports/" + L.path + "/teams";
   const grp = (/groups=\d+/.exec(L.q || "") || [""])[0];
-  const j = await getJSON("https://site.api.espn.com/apis/site/v2/sports/" + L.path + "/teams?limit=1000" + (grp ? "&" + grp : ""));
-  const teams = ((j.sports || [])[0]?.leagues?.[0]?.teams || []).map(x => x.team).filter(Boolean).map(t => ({
-    id: String(t.id), name: t.shortDisplayName || t.displayName || t.name, full: t.displayName || "", abbr: t.abbreviation || "",
-    logo: (t.logos && t.logos[0] && t.logos[0].href) || ""})).sort((a, b) => a.name.localeCompare(b.name));
-  if (teams.length) store.set(key, {ts: Date.now(), teams});
+  // ESPN accepts different query shapes for different sports, so try a few until one returns teams.
+  const urls = [...new Set([grp ? base + "?" + grp + "&limit=500" : "", base + "?limit=500", base + "?limit=1000", base])].filter(Boolean);
+  const norm = t => ({id: String(t.id), name: t.shortDisplayName || t.displayName || t.name || "", full: t.displayName || "", abbr: t.abbreviation || "",
+    logo: t.logo || (t.logos && t.logos[0] && t.logos[0].href) || ""});
+  let teams = [];
+  for (const u of urls){
+    try {
+      const j = await getJSON(u);
+      const list = ((j.sports || [])[0]?.leagues?.[0]?.teams || []).map(x => x.team).filter(Boolean).map(norm);
+      if (list.length){ teams = list; break; }
+    } catch {}
+  }
+  // Always add teams from games already loaded, so nothing playing this week is missing.
+  const seen = new Set(teams.map(t => t.id));
+  for (const g of games) if (g.lg === id || chipOf(g.lg) === id) for (const t of [g.home, g.away])
+    if (t.id && !seen.has(String(t.id))){ seen.add(String(t.id)); teams.push(norm({id: t.id, shortDisplayName: t.name, displayName: t.full || t.name, abbreviation: t.abbr, logo: t.logo})); }
+  teams.sort((a, b) => a.name.localeCompare(b.name));
+  if (teams.length >= 10) store.set(key, {ts: Date.now(), teams});
+  if (!teams.length) throw new Error("no teams");
   return teams;
 }
 async function renderPicker(){
@@ -1475,7 +1490,7 @@ async function renderPicker(){
   $("#tdList").innerHTML = `<div class="td-note">Loading teams…</div>`;
   let teams;
   try { teams = await teamsFor(tdLeague); }
-  catch { $("#tdList").innerHTML = `<div class="td-note">Couldn't load ${esc(L.label)} teams. Check your connection and try again.</div>`; return; }
+  catch { $("#tdList").innerHTML = `<div class="td-note">Couldn't load ${esc(L.label)} teams right now. You can still follow a team by opening one of its games and tapping ☆ Follow.</div>`; return; }
   if (tdLeague !== L.id) return;
   const rows = teams.filter(t => !q || (t.name + " " + t.full + " " + t.abbr).toLowerCase().includes(q));
   rows.sort((a, b) => (isFav(fake, b) - isFav(fake, a)) || a.name.localeCompare(b.name));
