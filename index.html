@@ -379,7 +379,7 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
   </section>
 </main>
 
-<p class="build" id="build">Pulse build 2026-11-02b · My teams picker</p>
+<p class="build" id="build">Pulse build 2026-11-02c · full team lists</p>
 
 <dialog id="howDlg" aria-labelledby="howTitle">
   <div class="m-in how">
@@ -1467,7 +1467,12 @@ async function teamsFor(id){
   const norm = t => ({id: String(t.id), name: t.shortDisplayName || t.displayName || t.name || "", full: t.displayName || "", abbr: t.abbreviation || "",
     logo: t.logo || (t.logos && t.logos[0] && t.logos[0].href) || ""});
   let teams = [];
-  for (const u of urls){
+  // 1) Full team lists saved weekly by the repo's GitHub job (works year-round, offseason included).
+  for (const u of ["teams/" + id + ".json", "https://raw.githubusercontent.com/tcmorrismsl-web/Pulse.Sport/main/teams/" + id + ".json"]){
+    try { const j = await getJSON(u); if (j && Array.isArray(j.teams) && j.teams.length){ teams = j.teams.map(t => ({...t, id: String(t.id)})); break; } } catch {}
+  }
+  // 2) ESPN directly (may be blocked in some browsers).
+  if (!teams.length) for (const u of urls){
     try {
       const j = await getJSON(u);
       const list = ((j.sports || [])[0]?.leagues?.[0]?.teams || []).map(x => x.team).filter(Boolean).map(norm);

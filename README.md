@@ -46,7 +46,7 @@ The empty `.nojekyll` file tells GitHub Pages to serve the files as they are.
 
 ## My teams
 
-Tap **+ Add teams** in the My teams section to pick teams by league (with search), or open any game and tap **☆ Follow** under a team. Team lists come from ESPN and are cached for a week. Followed teams get a gold ★ next to their name on every card, and their games get a gold outline. A **★ My teams** section at the top shows every game for those teams, whatever the league buttons or filters are set to: live games first, then the next 7 days by start time, then today's finals. Tap × on a team chip to stop following. Favorites are saved on this device. A soccer club followed once covers its Premier League, cup and Champions League games.
+Tap **+ Add teams** in the My teams section to pick teams by league (with search), or open any game and tap **☆ Follow** under a team. Team lists come from `teams/<league>.json`, which a GitHub Actions job (`.github/workflows/teams.yml`, running `scripts/fetch_teams.py`) refreshes from ESPN every Monday. ESPN's team-list endpoint can't be called from a web page, so the job does it server side. Run it any time from the repo's **Actions** tab, **Refresh team lists**, **Run workflow**. Followed teams get a gold ★ next to their name on every card, and their games get a gold outline. A **★ My teams** section at the top shows every game for those teams, whatever the league buttons or filters are set to: live games first, then the next 7 days by start time, then today's finals. Tap × on a team chip to stop following. Favorites are saved on this device. A soccer club followed once covers its Premier League, cup and Champions League games.
 
 ## Flags and filters
 
