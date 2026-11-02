@@ -98,6 +98,23 @@ header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background
 .favbtn{margin-top:4px;background:transparent;border:1px solid #2C313A;border-radius:999px;color:#88909A;font-family:var(--body);font-size:11px;font-weight:600;padding:3px 10px;cursor:pointer;white-space:nowrap}
 .favbtn:hover{border-color:#4A3F22;color:#E8D3A0}
 .favbtn[aria-pressed="true"]{border-color:#6B5A2A;background:#1E1910;color:#F5C451}
+.addteams{margin-left:auto;align-self:center;background:#18150F;border:1px solid #3A3220;color:#E8D3A0;border-radius:999px;font-family:var(--body);font-size:12px;font-weight:600;padding:5px 12px;cursor:pointer}
+.addteams:hover{border-color:#6B5A2A;color:#F5C451}
+.td .m-head h2{text-transform:none}
+.td-lgs{display:flex;flex-wrap:wrap;gap:6px}
+.td-lgs button{border:1px solid #262A35;background:transparent;border-radius:999px;padding:4px 10px;font-family:var(--body);font-size:12px;font-weight:600;color:color-mix(in srgb,var(--lc) 55%,#5A606B);cursor:pointer}
+.td-lgs button[aria-selected="true"]{color:var(--lc);border-color:color-mix(in srgb,var(--lc) 40%,#262A35);background:color-mix(in srgb,var(--lc) 10%,#13181E)}
+.td-search{width:100%;background:#0F1318;border:1px solid #262A35;border-radius:10px;padding:10px 12px;color:var(--text);font-family:var(--body);font-size:16px}
+.td-search:focus{outline:none;border-color:#4A505A}
+.td-list{display:grid;gap:2px;max-height:min(52dvh,460px);overflow:auto;margin:0 -6px;padding:0 6px}
+.td-row{display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:center;width:100%;background:none;border:0;border-radius:8px;padding:8px 6px;color:var(--text);font-family:var(--body);font-size:14px;text-align:left;cursor:pointer}
+.td-row:hover{background:#1A1F26}
+.td-row img,.td-row .ph{width:22px;height:22px;object-fit:contain}
+.td-row .ph{border-radius:50%;background:#262A35}
+.td-row .sm{color:#5A606B;font-size:12px;margin-left:6px}
+.td-row .st{font-size:18px;color:#3A404A;line-height:1}
+.td-row[aria-pressed="true"] .st{color:#F5C451}
+.td-note{color:var(--muted);font-size:13px;padding:10px 4px}
 .subf{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:2px}
 .subf .lab{font-size:11px;font-weight:600;color:#5A606B;letter-spacing:.04em;margin-right:-2px}
 .seg{display:inline-flex;border:1px solid #20242C;border-radius:999px;overflow:hidden}
@@ -323,7 +340,8 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
   <div id="loading" class="loading">Loading scoreboards…</div>
 
   <section class="block" id="favSec" hidden>
-    <div class="sec-head"><h2 class="sec-title"><button class="tog" type="button" data-tog="favs" aria-expanded="true"><span class="chev" aria-hidden="true"></span><span class="favstar" aria-hidden="true">★</span> My teams</button></h2><span class="count" id="favCount"></span></div>
+    <div class="sec-head"><h2 class="sec-title"><button class="tog" type="button" data-tog="favs" aria-expanded="true"><span class="chev" aria-hidden="true"></span><span class="favstar" aria-hidden="true">★</span> My teams</button></h2><span class="count" id="favCount"></span>
+      <button class="addteams" id="addTeams" type="button">+ Add teams</button></div>
     <div class="favlist" id="favList"></div>
     <div class="grid cards" id="favGrid"></div>
   </section>
@@ -400,6 +418,17 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
       <p>The top end is compressed on purpose. Anything above 90 is a genuinely special game, and 100 is close to unreachable.</p>
     </div>
     <div class="m-foot"><button class="btn" type="button" data-close>Close</button></div>
+  </div>
+</dialog>
+
+<dialog id="teamDlg" aria-labelledby="tdTitle">
+  <div class="m-in td">
+    <div class="m-head"><div><h2 id="tdTitle">Add teams</h2><div class="sub">Star a team to follow it. Its games show up in My teams.</div></div>
+      <button class="x" type="button" data-close aria-label="Close">✕</button></div>
+    <div class="td-lgs" id="tdLeagues" role="tablist" aria-label="League"></div>
+    <input class="td-search" id="tdSearch" type="search" placeholder="Search teams" autocomplete="off" aria-label="Search teams">
+    <div class="td-list" id="tdList"></div>
+    <div class="m-foot"><button class="btn primary" type="button" data-close>Done</button></div>
   </div>
 </dialog>
 
@@ -1403,8 +1432,12 @@ function renderChips(){
    Live first (hottest), then upcoming by start time (next 7 days), then today's finals. */
 function renderFavs(){
   const keys = Object.keys(favs);
-  $("#favSec").hidden = !keys.length;
-  if (!keys.length) return;
+  $("#favSec").hidden = false;
+  if (!keys.length){
+    $("#favCount").textContent = "follow teams to see their games here";
+    $("#favList").innerHTML = ""; $("#favGrid").innerHTML = "";
+    return;
+  }
   const mine = games.filter(isFavGame);
   const t = g => new Date(g.date).getTime() || 0;
   const today = new Date().toDateString();
@@ -1421,6 +1454,36 @@ function renderFavs(){
     return `<span class="favchip" style="border-color:color-mix(in srgb,${lgColor(f.lg)} 30%,#3A3220)">${f.logo ? `<img src="${esc(f.logo)}" alt="">` : ""}${esc(f.name)}<button type="button" data-unfav="${esc(k)}" aria-label="Stop following ${esc(f.name)}">×</button></span>`; }).join("") +
     (list.length ? "" : `<p class="fav-empty" style="flex-basis:100%">No games for your teams in the next 7 days.</p>`) : "";
   $("#favGrid").innerHTML = open ? capped(list, "favs") : "";
+}
+/* Team picker: every team in a league from ESPN's team list (cached for a week). */
+let tdLeague = "nfl";
+async function teamsFor(id){
+  const L = LG[id], key = "pulse.teams." + id, c = store.get(key, null);
+  if (c && Date.now() - c.ts < 7 * 864e5 && c.teams.length) return c.teams;
+  const grp = (/groups=\d+/.exec(L.q || "") || [""])[0];
+  const j = await getJSON("https://site.api.espn.com/apis/site/v2/sports/" + L.path + "/teams?limit=1000" + (grp ? "&" + grp : ""));
+  const teams = ((j.sports || [])[0]?.leagues?.[0]?.teams || []).map(x => x.team).filter(Boolean).map(t => ({
+    id: String(t.id), name: t.shortDisplayName || t.displayName || t.name, full: t.displayName || "", abbr: t.abbreviation || "",
+    logo: (t.logos && t.logos[0] && t.logos[0].href) || ""})).sort((a, b) => a.name.localeCompare(b.name));
+  if (teams.length) store.set(key, {ts: Date.now(), teams});
+  return teams;
+}
+async function renderPicker(){
+  $("#tdLeagues").innerHTML = CHIPS.map(l => `<button type="button" role="tab" data-tdlg="${l.id}" aria-selected="${l.id === tdLeague}" style="--lc:${lgColor(l.id)}">${esc(l.label)}</button>`).join("");
+  const q = $("#tdSearch").value.trim().toLowerCase();
+  const L = LG[tdLeague], fake = {lg: tdLeague};
+  $("#tdList").innerHTML = `<div class="td-note">Loading teams…</div>`;
+  let teams;
+  try { teams = await teamsFor(tdLeague); }
+  catch { $("#tdList").innerHTML = `<div class="td-note">Couldn't load ${esc(L.label)} teams. Check your connection and try again.</div>`; return; }
+  if (tdLeague !== L.id) return;
+  const rows = teams.filter(t => !q || (t.name + " " + t.full + " " + t.abbr).toLowerCase().includes(q));
+  rows.sort((a, b) => (isFav(fake, b) - isFav(fake, a)) || a.name.localeCompare(b.name));
+  $("#tdList").innerHTML = rows.length ? rows.slice(0, 400).map(t => {
+    const on = isFav(fake, t);
+    return `<button class="td-row" type="button" data-tdteam="${esc(t.id)}" aria-pressed="${on}">${t.logo ? `<img src="${esc(t.logo)}" alt="" loading="lazy">` : '<span class="ph"></span>'}<span>${esc(t.full || t.name)}<span class="sm">${esc(t.abbr)}</span></span><span class="st" aria-hidden="true">${on ? "★" : "☆"}</span></button>`;
+  }).join("") : `<div class="td-note">No teams match “${esc(q)}”.</div>`;
+  $("#tdList")._teams = teams;
 }
 function render(){
   $("#loading").hidden = true;
@@ -1913,6 +1976,24 @@ $("#finRange").addEventListener("change", async e => {
   finRange = e.target.value === "week" ? "week" : "today";
   store.set("pulse.finRange", finRange);
   if (finRange === "week" && !usingSample){ weekLoading = true; render(); await refresh(); weekLoading = false; }
+  render();
+});
+$("#addTeams").addEventListener("click", () => {
+  const mine = Object.values(favs)[0];
+  if (mine && LG[mine.lg]) tdLeague = mine.lg;
+  $("#tdSearch").value = "";
+  $("#teamDlg").showModal(); renderPicker();
+});
+$("#tdLeagues").addEventListener("click", e => { const b = e.target.closest("[data-tdlg]"); if (!b) return; tdLeague = b.dataset.tdlg; renderPicker(); });
+let tdTimer = null;
+$("#tdSearch").addEventListener("input", () => { clearTimeout(tdTimer); tdTimer = setTimeout(renderPicker, 120); });
+$("#tdList").addEventListener("click", e => {
+  const b = e.target.closest("[data-tdteam]"); if (!b) return;
+  const t = ($("#tdList")._teams || []).find(x => x.id === b.dataset.tdteam); if (!t) return;
+  const k = favKey({lg: tdLeague}, t);
+  if (favs[k]) delete favs[k]; else favs[k] = {name: t.name, abbr: t.abbr, logo: t.logo, lg: tdLeague};
+  favs = {...favs}; store.set("pulse.favs", favs);
+  const on = !!favs[k]; b.setAttribute("aria-pressed", on); b.querySelector(".st").textContent = on ? "★" : "☆";
   render();
 });
 $("#upsetOnly").addEventListener("click", () => { upsetOnly = !upsetOnly; store.set("pulse.upsetOnly", upsetOnly); render(); });
