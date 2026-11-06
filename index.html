@@ -414,7 +414,7 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
   </section>
 </main>
 
-<p class="build" id="build">Pulse build 2026-11-06b · best right now, alerts, spoiler-free, offline</p>
+<p class="build" id="build">Pulse build 2026-11-06c · clearer scores in banner and alerts</p>
 
 <dialog id="howDlg" aria-labelledby="howTitle">
   <div class="m-in how">
@@ -1416,7 +1416,7 @@ function toast(g, mine){
   const el = document.createElement("div");
   el.className = "toast"; el.style.setProperty("--zc", colorAt(g.score));
   el.innerHTML = `<div><div class="tt">${mine ? "★ Your team · " : ""}Must-watch · ${g.score}</div>
-    <div class="tb">${esc(g.away.name)} at ${esc(g.home.name)}${spoil ? "" : " · " + g.away.score + "–" + g.home.score} · ${esc(statusText(g))}</div></div>
+    <div class="tb">${esc(g.away.name)} at ${esc(g.home.name)}${spoil ? "" : " · " + scoreLine(g)} · ${esc(statusText(g))}</div></div>
     <button class="tx" type="button" aria-label="Dismiss">✕</button>
     <div class="ta">${w ? `<a class="btn watch" style="background:${w.w.color};border-color:${w.w.color};color:${w.w.text}" href="${w.w.url(g)}" target="_blank" rel="noopener">▶ Watch</a>` : ""}<button class="btn" type="button" data-open="${esc(g.id)}">Details</button></div>`;
   el.querySelector(".tx").onclick = () => el.remove();
@@ -1565,6 +1565,12 @@ function renderChips(){
 
 /* My teams: every game for a followed team, whatever the league buttons or filters say.
    Live first (hottest), then upcoming by start time (next 7 days), then today's finals. */
+/* "UMASS 9 · BC 4": score with team abbreviations, leader in bold. */
+function scoreLine(g){
+  const a = g.away, h = g.home, ab = t => esc(t.abbr || t.name);
+  const lead = a.score > h.score ? "a" : h.score > a.score ? "h" : "";
+  return `${lead === "a" ? "<b>" : ""}${ab(a)} ${a.score}${lead === "a" ? "</b>" : ""} · ${lead === "h" ? "<b>" : ""}${ab(h)} ${h.score}${lead === "h" ? "</b>" : ""}`;
+}
 /* Best right now: the hottest live game (from your selected leagues) with a one-tap Watch. */
 function renderBest(live){
   const g = live[0], sec = $("#bestSec");
@@ -1575,7 +1581,7 @@ function renderBest(live){
   sec.innerHTML = `<div class="best-card" data-open="${esc(g.id)}" style="--zc:${colorAt(g.score)}" role="button" tabindex="0" aria-label="Best game right now: ${esc(g.away.name)} at ${esc(g.home.name)}, excitement ${g.score}">
     <p class="eyebrow"><i aria-hidden="true"></i>Best right now · ${esc(LG[g.lg].label)}</p>
     <div class="bm"><div class="bt">${esc(g.away.name)} at ${esc(g.home.name)}</div>
-      <div class="bs">${spoil ? "" : `<b>${g.away.score}–${g.home.score}</b> · `}<span${cr ? ` style="color:${CRUNCH[cr]};font-weight:600"` : ""}>${esc(statusText(g))}</span>${(g.tags || []).filter(t => !(spoil && t[2]))[0] ? " · " + esc(g.tags.filter(t => !(spoil && t[2]))[0][0]) : ""}</div></div>
+      <div class="bs">${spoil ? "" : scoreLine(g) + " · "}<span${cr ? ` style="color:${CRUNCH[cr]};font-weight:600"` : ""}>${esc(statusText(g))}</span>${(g.tags || []).filter(t => !(spoil && t[2]))[0] ? " · " + esc(g.tags.filter(t => !(spoil && t[2]))[0][0]) : ""}</div></div>
     <div class="bn">${g.score}<small>${esc(zone(g.score).name)}</small></div>
     <div class="ba">${w ? `<a class="btn watch" style="background:${w.w.color};border-color:${w.w.color};color:${w.w.text}" href="${w.w.url(g)}" target="_blank" rel="noopener">▶ Watch${w.w.id === "yttv" ? " · " + esc(w.nets[0]) : " on " + esc(w.w.label)}</a>` : ""}<button class="btn" type="button" data-open="${esc(g.id)}">Details</button></div>
   </div>`;
