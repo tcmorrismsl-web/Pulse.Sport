@@ -137,8 +137,6 @@ section.block{margin-top:26px}
 .count{font-family:var(--body);color:#5D646D;font-size:11.5px;font-variant-numeric:tabular-nums}
 .info{flex:none;width:22px;height:22px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--muted);font-family:Georgia,serif;font-style:italic;font-weight:700;font-size:13px;line-height:1;cursor:pointer;display:inline-grid;place-items:center;padding:0}
 .info:hover{color:var(--text);border-color:var(--faint)}
-.legend{margin-left:auto;display:flex;gap:12px;flex-wrap:wrap;font-family:var(--label);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-.legend i{display:inline-block;width:10px;height:3px;border-radius:2px;margin-right:5px;vertical-align:middle}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:10px}
 /* Collapsible sections */
 .tog{background:none;border:0;padding:0;margin:0;font:inherit;color:inherit;letter-spacing:inherit;text-transform:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:0;text-align:left}
@@ -160,30 +158,11 @@ section.block{margin-top:26px}
 .empty{color:var(--muted);font-size:14px;padding:18px;border:1px dashed var(--line);border-radius:8px}
 
 /* Game card */
-.game{display:grid;grid-template-columns:62px 1fr;gap:14px;align-items:center;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px 12px 12px;cursor:pointer;width:100%;position:relative;overflow:hidden}
-.game:hover{border-color:var(--faint);background:var(--surface-2)}
-.game::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--z)}
 .dial{width:62px;height:62px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--z) calc(var(--v)*1%),var(--line) 0);position:relative}
 .dial::after{content:"";position:absolute;inset:5px;border-radius:50%;background:var(--surface)}
-.game:hover .dial::after{background:var(--surface-2)}
 .dial b{position:relative;z-index:1;font-family:var(--display);font-weight:800;font-size:26px;line-height:1;font-variant-numeric:tabular-nums;color:var(--z)}
 .dial small{position:absolute;z-index:1;bottom:9px;font-family:var(--label);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .dial.pre b{color:var(--text)}
-.g-main{min-width:0;display:grid;gap:5px}
-.g-meta{display:flex;align-items:center;gap:8px;font-family:var(--label);font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);min-width:0}
-.g-meta .lg{color:var(--text);font-weight:700}
-.g-meta .st{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.g-meta .st.live{color:var(--must);font-weight:600}
-.g-meta .delta{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:600}
-.delta.up{color:var(--heat)} .delta.down{color:var(--quiet)}
-.team{display:grid;grid-template-columns:20px 1fr auto;gap:8px;align-items:center;font-size:15px}
-.team img,.team .ph{width:20px;height:20px;object-fit:contain}
-.team .ph{border-radius:50%;background:var(--line)}
-.team .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
-.team .rk{font-family:var(--label);color:var(--muted);font-size:12px;margin-right:4px;font-weight:600}
-.team .rec{color:var(--faint);font-size:12px;margin-left:6px;font-variant-numeric:tabular-nums}
-.team .sc{font-family:var(--display);font-weight:800;font-size:22px;line-height:1;font-variant-numeric:tabular-nums;min-width:2ch;text-align:right}
-.team.lose .nm,.team.lose .sc{color:var(--muted)}
 .tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px}
 .tag{font-family:var(--label);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:4px;background:var(--surface-2);border:1px solid var(--line);color:var(--muted)}
 .tag.hot{color:var(--heat);border-color:color-mix(in srgb,var(--heat) 40%,var(--line))}
@@ -286,9 +265,6 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
 /* Excitement charts */
 .chart-box{position:relative}
 .chart-t{margin:2px 0 6px}
-.lc-box{margin-bottom:12px;padding:12px 12px 10px}
-.lc-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:4px}
-.lc-head .note{margin-left:auto}
 .plot svg{display:block;width:100%;height:auto;touch-action:pan-y;cursor:crosshair}
 .lc .ser{transition:opacity .15s}
 .lc.hl .ser{opacity:.1}
@@ -304,7 +280,6 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
 @media (max-width:520px){
   .wordmark{font-size:28px}
   .tagline{display:none}
-  .legend{display:none}
   .bd-row{grid-template-columns:96px 1fr 40px}
   .score-line .big{font-size:36px}
 }
@@ -379,7 +354,7 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
   </section>
 </main>
 
-<p class="build" id="build">Pulse build 2026-11-02c · full team lists</p>
+<p class="build" id="build">Pulse build 2026-11-06 · cleanup and fixes</p>
 
 <dialog id="howDlg" aria-labelledby="howTitle">
   <div class="m-in how">
@@ -822,7 +797,7 @@ const CRUNCH = ["", "#E8C25A", "#FF5A64"];
 /* YouTube TV: networks it carries (broadcast + cable sports). Streaming-only outlets
    (ESPN+, Peacock, Paramount+, Prime Video, Apple TV, Netflix, HBO Max, Disney+) don't count.
    YouTube TV has no per-game links, so the button opens the app: the Live guide for games in progress. */
-const YTTV_NET = /^(abc|cbs|nbc|fox|espn|espn2|espnu|espnews|sec ?network|secn|acc ?network|accn|acc network extra|big ten network|btn|cbs sports network|cbssn|fs1|fs2|tnt|tbs|trutv|usa|usa network|nfl network|nfl net|nfln|mlb network|mlbn|nba tv|nhl network|golf|golf channel|tennis channel|telemundo|universo|nbc sports|nfl redzone|redzone)$/i;
+const YTTV_NET = /^(abc|cbs|nbc|fox|espn|espn2|espnu|espnews|sec ?network|secn|acc ?network|accn|acc network extra|big ten network|btn|cbs sports network|cbssn|fs1|fs2|tnt|tbs|trutv|usa|usa net|usa network|nfl network|nfl net|nfln|mlb network|mlbn|nba tv|nhl network|golf|golf channel|tennis channel|telemundo|universo|nbc sports|nfl redzone|redzone)$/i;
 function yttvNets(g){
   return (g.broadcast || "").split(/\s*,\s*/).filter(n => YTTV_NET.test(n.trim()) && !/redzone/i.test(n));
 }
@@ -1108,13 +1083,14 @@ function afterglow(g){
   const h = history[g.id];
   if (!h) return;
   const now = Date.now(), prev = h.shown;
+  let held = g.score;
   if (prev && now - prev.t < 3600e3 && prev.v > g.score){
-    const held = g.score + (prev.v - g.score) * Math.exp(-(now - prev.t) / 60000 / GLOW_MIN);
+    held = g.score + (prev.v - g.score) * Math.exp(-(now - prev.t) / 60000 / GLOW_MIN);
     const v = Math.round(held);
     g.glow = v - g.score;
     g.score = v;
   }
-  h.shown = {v:g.score, t:now};
+  h.shown = {v: held, t: now};   // unrounded, or small leftovers would never decay
 }
 function recordExcitement(g){
   if (g.state !== "in") return;
@@ -1166,7 +1142,12 @@ async function soccerEvents(L){
   const days = Array.from({length: 8}, (_, i) => ymd(new Date(Date.now() + (i - 1) * 864e5)));
   const out = await Promise.allSettled(days.map(async d => {
     const key = L.id + ":" + d, c = dayCache[key];
-    if (c && d !== today && Date.now() - c.ts < 600e3) return c.events;
+    const hot = c && c.events.some(ev => {
+      const st = (ev.competitions && ev.competitions[0] && ev.competitions[0].status && ev.competitions[0].status.type && ev.competitions[0].status.type.state) || "";
+      const t = Date.parse(ev.date);
+      return st === "in" || (st === "pre" && t < Date.now() + 10 * 60e3 && t > Date.now() - 3 * 3600e3);
+    });
+    if (c && d !== today && !hot && Date.now() - c.ts < 600e3) return c.events;
     const j = await getJSON(base + "?dates=" + d + (L.q ? "&" + L.q : ""));
     dayCache[key] = {ts: Date.now(), events: j.events || []};
     return dayCache[key].events;
@@ -1231,16 +1212,37 @@ function finishLeague(L, events){
   return list;
 }
 
+let hadReal = false;                 // real ESPN data has loaded at least once
+const lastFetch = {};                 // league id -> time of last successful fetch
+/* A league is "watched" if its chip is on or one of your teams plays in it. Others refresh every 5 minutes. */
+function watched(L){
+  if (selected.has(chipOf(L.id))) return true;
+  const sport = L.kind === "soccer" ? "soccer" : chipOf(L.id);
+  return Object.keys(favs).some(k => k.startsWith(sport + ":"));
+}
 async function refresh(){
   if (busy) return;
   busy = true;
   $("#refreshBtn").disabled = true;
+  try { await doRefresh(); }
+  catch (e) { console.error(e); setConn("warn", "Update failed · retrying"); }
+  finally {
+    busy = false;
+    $("#refreshBtn").disabled = false;
+    schedule();
+  }
+}
+async function doRefresh(){
   if (!games.length && !usingSample) setConn("", "Connecting…");
   const ids = LEAGUES.map(l => l.id);
+  const prevBy = id => games.filter(g => g.lg === id && !usingSample);
+  const fetchOrReuse = L => (!watched(L) && lastFetch[L.id] && Date.now() - lastFetch[L.id] < 300e3 && L.id !== "epl")
+    ? Promise.resolve(prevBy(L.id))
+    : fetchLeague(L).then(v => { lastFetch[L.id] = Date.now(); return v; });
   await ensureEplTeams();
   // Premier League first, so its clubs are known before the cup feeds are filtered.
-  const eplRes = await Promise.allSettled([fetchLeague(LG.epl)]);
-  const rest = await Promise.allSettled(LEAGUES.filter(l => l.id !== "epl").map(fetchLeague));
+  const eplRes = await Promise.allSettled([fetchOrReuse(LG.epl)]);
+  const rest = await Promise.allSettled(LEAGUES.filter(l => l.id !== "epl").map(fetchOrReuse));
   const byId = {epl: eplRes[0]};
   LEAGUES.filter(l => l.id !== "epl").forEach((l, i) => byId[l.id] = rest[i]);
   const results = ids.map(id => byId[id]);
@@ -1250,11 +1252,22 @@ async function refresh(){
   results.forEach((r, i) => {
     const id = ids[i];
     if (r.status === "fulfilled"){ okCount++; next.push(...r.value); leagueState[id] = {ok:true, n:r.value.length, live:r.value.filter(g => g.state === "in").length}; }
-    else leagueState[id] = {ok:false, n:0, live:0};
+    else {
+      // Keep this league's last-known games so cards and chart lines don't blink out on a bad connection.
+      const keep = prevBy(id);
+      next.push(...keep);
+      leagueState[id] = {ok:false, stale: keep.length > 0, n: keep.length, live: keep.filter(g => g.state === "in").length};
+    }
   });
 
+  if (okCount === 0 && hadReal){
+    // Connection dropped after real data loaded: keep showing the last real games and retry.
+    setConn("warn", "Offline · showing last update · retrying");
+    render();
+    return;
+  }
   if (okCount === 0){
-    // No network path to ESPN (for example inside a sandboxed preview): show labeled sample games.
+    // No network path to ESPN at all (for example a sandboxed preview): show labeled sample games.
     usingSample = true;
     const sample = sampleGames();
     leagueState = {};
@@ -1264,6 +1277,7 @@ async function refresh(){
     setConn("warn", "Sample data");
   } else {
     usingSample = false;
+    hadReal = true;
     if (finRange === "week"){
       const seen = new Set(next.map(g => g.id));
       for (const g of await pastWeekFinals()) if (!seen.has(g.id)){ seen.add(g.id); next.push(g); }
@@ -1271,13 +1285,10 @@ async function refresh(){
     ingest(next);
     const t = new Date().toLocaleTimeString([], {hour:"numeric", minute:"2-digit", second:"2-digit"});
     const anyLive = next.some(g => g.state === "in");
-    const failed = CHIPS.filter(l => !leagueState[l.id].ok).length;
+    const failed = CHIPS.filter(l => !leagueState[l.id].ok && !leagueState[l.id].stale).length;
     setConn(anyLive ? "live" : "ok", (anyLive ? "Live" : "Connected") + " · updated " + t + (failed ? " · " + failed + " league" + (failed > 1 ? "s" : "") + " unavailable" : ""));
   }
   $("#sampleBanner").hidden = !usingSample;
-  busy = false;
-  $("#refreshBtn").disabled = false;
-  schedule();
 }
 
 function ingest(list){
@@ -1298,9 +1309,11 @@ function ingest(list){
 
 function schedule(){
   clearTimeout(timer);
-  if (usingSample) return;
+  if (document.visibilityState === "hidden") return;          // paused in the background
+  const offline = /Offline|failed/.test($("#connText").textContent);
   const anyLive = games.some(g => g.state === "in");
-  timer = setTimeout(refresh, anyLive ? 20000 : 300000);
+  // Sample mode and offline retry every minute / 30 s so real data comes back on its own.
+  timer = setTimeout(refresh, usingSample ? 60000 : offline ? 30000 : anyLive ? 20000 : 300000);
 }
 
 function setConn(kind, text){
@@ -1322,13 +1335,6 @@ function statusText(g){
 }
 function logoHTML(t, size){
   return t.logo ? `<img src="${esc(t.logo)}" alt="" width="${size}" height="${size}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'ph'}))">` : `<span class="ph"></span>`;
-}
-function teamRow(t, g, other){
-  const lose = g.state === "post" && t.score < other.score;
-  const showScore = g.state !== "pre";
-  return `<div class="team${lose ? " lose" : ""}">${logoHTML(t, 20)}
-    <span class="nm">${t.rank ? `<span class="rk">${t.rank}</span>` : ""}${esc(t.name)}${!showScore && t.record ? `<span class="rec">${esc(t.record)}</span>` : ""}</span>
-    <span class="sc">${showScore ? t.score : ""}</span></div>`;
 }
 function diamond(on, size){
   const base = (b, cx, cy) => `<rect x="${cx - 3.6}" y="${cy - 3.6}" width="7.2" height="7.2" rx="1" transform="rotate(45 ${cx} ${cy})" fill="${b ? "var(--heat)" : "none"}" stroke="${b ? "var(--heat)" : "var(--faint)"}" stroke-width="1.6"/>`;
@@ -1389,7 +1395,7 @@ function card(g){
   }
   const word = g.state === "pre" ? "hype" : g.state === "post" ? "final" : "now";
   const lg = esc(L.label) + (g.group && /^ncaa/.test(g.lg) ? " · " + esc(g.group) : "");
-  return `<button class="gc${g.state === "pre" ? " pre" : ""}${isFavGame(g) ? " isfav" : ""}" type="button" data-id="${esc(g.id)}" style="--zc:${col}" aria-label="${esc(g.away.name)} at ${esc(g.home.name)}, excitement ${g.score}">
+  return `<button class="gc${g.state === "pre" ? " pre" : ""}${isFavGame(g) ? " isfav" : ""}" type="button" data-id="${esc(g.id)}" style="--zc:${col}" aria-label="${esc(g.away.name)}${g.state !== "pre" ? " " + g.away.score : ""} at ${esc(g.home.name)}${g.state !== "pre" ? " " + g.home.score : ""}, ${esc(statusText(g))}, excitement ${g.score}">
     <span class="bar"></span>
     <div class="body">
       ${cardTeam(g.away, g, g.home)}
@@ -1434,7 +1440,7 @@ function renderFavs(){
   const keys = Object.keys(favs);
   $("#favSec").hidden = false;
   if (!keys.length){
-    $("#favCount").textContent = "follow teams to see their games here";
+    $("#favCount").textContent = "none yet";
     $("#favList").innerHTML = ""; $("#favGrid").innerHTML = "";
     return;
   }
@@ -1481,7 +1487,7 @@ async function teamsFor(id){
   }
   // Always add teams from games already loaded, so nothing playing this week is missing.
   const seen = new Set(teams.map(t => t.id));
-  for (const g of games) if (g.lg === id || chipOf(g.lg) === id) for (const t of [g.home, g.away])
+  for (const g of games) if (g.lg === id) for (const t of [g.home, g.away])
     if (t.id && !seen.has(String(t.id))){ seen.add(String(t.id)); teams.push(norm({id: t.id, shortDisplayName: t.name, displayName: t.full || t.name, abbreviation: t.abbr, logo: t.logo})); }
   teams.sort((a, b) => a.name.localeCompare(b.name));
   if (teams.length >= 10) store.set(key, {ts: Date.now(), teams});
@@ -1518,7 +1524,6 @@ function render(){
 
   // Pregame: today's games get their own section; later days are grouped by day.
   // Within a day: hype (highest first), then league in chip order.
-  const lgOrder = Object.fromEntries(LEAGUES.map((l, i) => [l.id, CHIPS.findIndex(c => c.id === chipOf(l.id))]));
   const dayKey = g => { const d = new Date(g.date); return isNaN(d) ? "9999" : d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
   const now = new Date(), todayKey = dayKey({date: now});
   const week = Date.now() + 7 * 24 * 3600e3;
@@ -1539,7 +1544,7 @@ function render(){
   drawLive();
 
   setSection("today", todayList, "#todaySec", "#todayGrid", true);
-  $("#todayCount").textContent = todayList.length ? todayList.length + " to go · by hype, then league" : "";
+  $("#todayCount").textContent = todayList.length ? todayList.length + " to go · by start time, then hype" : "";
 
   $("#upSec").hidden = !upList.length;
   const upOpen = isOpen("up", true);
@@ -1995,7 +2000,11 @@ $("#subf").addEventListener("click", e => {
 $("#finRange").addEventListener("change", async e => {
   finRange = e.target.value === "week" ? "week" : "today";
   store.set("pulse.finRange", finRange);
-  if (finRange === "week" && !usingSample){ weekLoading = true; render(); await refresh(); weekLoading = false; }
+  if (finRange === "week" && !usingSample){
+    weekLoading = true; render();
+    while (busy) await new Promise(r => setTimeout(r, 200));   // let a running refresh finish first
+    await refresh(); weekLoading = false;
+  }
   render();
 });
 $("#addTeams").addEventListener("click", () => {
@@ -2045,7 +2054,8 @@ document.addEventListener("click", e => {
 });
 $("#gameDlg").addEventListener("close", () => { openId = null; });
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible" && !usingSample && games.length) refresh();
+  if (document.visibilityState === "hidden") clearTimeout(timer);
+  else refresh();
 });
 
 renderChips();

@@ -97,7 +97,14 @@ for lg, (path, grp) in LEAGUES.items():
     if not teams:
         failed.append(lg)
         continue
-    with open(f"teams/{lg}.json", "w") as f:
+    path = f"teams/{lg}.json"
+    try:
+        with open(path) as f:
+            if json.load(f).get("teams") == teams:
+                continue            # unchanged: leave the file alone so nothing is committed
+    except (OSError, ValueError):
+        pass
+    with open(path, "w") as f:
         json.dump({"league": lg, "updated": time.strftime("%Y-%m-%d"), "teams": teams}, f, separators=(",", ":"))
 if len(failed) == len(LEAGUES):
     sys.exit("no team lists fetched")

@@ -63,6 +63,11 @@ Tap **+ Add teams** in the My teams section to pick teams by league (with search
 
 Games on a network YouTube TV carries (ABC, CBS, NBC, FOX, the ESPN networks, SEC/ACC/Big Ten Network, FS1, TNT, TBS, USA, NFL/MLB/NBA TV and similar) show a red ▶ on their network badge. The game popup adds a **Watch on YouTube TV** button that opens the YouTube TV app, to the Live guide for games in progress. Prime Video, Netflix and Peacock games get their own ▶ (blue, red, white) and a matching button that opens that app. None of these services offer per-game links, so each button opens the app itself. Sunday-afternoon NFL games on CBS or FOX (noon to 5 PM Eastern kickoffs) also get an **NFL RedZone** button that opens the RedZone channel in YouTube TV directly. Direct channel links live in `YTTV_CHANNEL`. Services live in `WATCH`; YouTube TV's channel list is `YTTV_NET`; the RedZone rule is `redZoneGame()`. Network names are read from every TV/streaming field ESPN provides (`networksOf()`). The build line at the bottom of the page shows which version is loaded.
 
+## Updates and connection
+
+- Refresh is every 20 seconds while a game you're watching is live, otherwise every 5 minutes. Leagues whose button is off (and with none of your teams) only refresh every 5 minutes. Updates pause while the app is in the background and resume when you return.
+- If one league fails to load, its last-known games stay on screen. If the connection drops completely, Pulse keeps the last update on screen ("Offline · retrying") and retries every 30 seconds. Sample games appear only if real data has never loaded.
+
 ## Where to tune it
 
 All of these are in the `<script>` section of `index.html`:
