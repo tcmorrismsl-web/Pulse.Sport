@@ -115,6 +115,61 @@ header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background
 .td-row .st{font-size:18px;color:#3A404A;line-height:1}
 .td-row[aria-pressed="true"] .st{color:#F5C451}
 .td-note{color:var(--muted);font-size:13px;padding:10px 4px}
+/* Header icon buttons */
+.hbtn{display:inline-flex;align-items:center;gap:6px;background:transparent;border:1px solid #262A35;border-radius:8px;color:#88909A;padding:6px 10px;font-family:var(--body);font-size:12px;font-weight:600;cursor:pointer}
+.hbtn:hover{color:var(--text);border-color:#343A44}
+.hbtn .slash{display:none}
+#spoilBtn[aria-pressed="true"]{color:#F5C451;border-color:#6B5A2A;background:#1E1910}
+#spoilBtn[aria-pressed="true"] .slash{display:inline}
+#alertBtn[aria-pressed="false"] .slash{display:inline}
+#alertBtn[aria-pressed="false"]{color:#5A606B}
+#spoilBtn[aria-pressed="true"] .hl::after{content:" hidden"}
+
+/* Best right now */
+.best{margin-top:18px}
+.best-card{position:relative;display:grid;grid-template-columns:1fr auto;gap:10px 14px;align-items:center;background:linear-gradient(135deg,color-mix(in srgb,var(--zc) 16%,#13181E),#13181E 60%);border:1px solid color-mix(in srgb,var(--zc) 45%,#262A35);border-radius:16px;padding:14px 16px;cursor:pointer}
+.best-card .eyebrow{color:var(--zc);grid-column:1/-1;margin:0;display:flex;align-items:center;gap:7px}
+.best-card .eyebrow i{width:7px;height:7px;border-radius:50%;background:var(--must);animation:beat 1.6s infinite}
+.best-card .bm{min-width:0}
+.best-card .bt{font-family:var(--display);font-weight:600;font-size:22px;line-height:1.15;color:#F2F5FA;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.best-card .bs{color:#88909A;font-size:13px;margin-top:3px}
+.best-card .bs b{color:var(--text);font-weight:600}
+.best-card .bn{font-family:var(--display);font-weight:600;font-size:44px;line-height:1;color:var(--zc);text-align:right}
+.best-card .bn small{display:block;font-family:var(--body);font-size:10px;font-weight:500;color:#6E7681;text-align:center}
+.best-card .ba{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
+.best-card .ba .btn{font-size:12px}
+
+/* Alert toasts */
+.toasts{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 10px);z-index:50;display:grid;gap:8px;width:min(440px,calc(100vw - 24px));pointer-events:none}
+.toast{pointer-events:auto;display:grid;grid-template-columns:1fr auto;gap:8px 10px;align-items:center;background:#1A1F26;border:1px solid color-mix(in srgb,var(--zc) 55%,#262A35);border-left:4px solid var(--zc);border-radius:12px;padding:10px 12px;box-shadow:0 10px 30px rgba(0,0,0,.55);animation:tin .25s ease-out}
+.toast .tt{font-weight:700;font-size:13px;color:var(--zc)}
+.toast .tb{font-size:13px;color:var(--text);margin-top:2px}
+.toast .tx{background:none;border:0;color:#7F8792;font-size:16px;cursor:pointer;min-width:32px;min-height:32px}
+.toast .ta{grid-column:1/-1;display:flex;gap:8px}
+.toast .ta .btn{font-size:11px;padding:5px 10px}
+@keyframes tin{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+
+/* Freshness */
+.conn .ago.stale{color:var(--heat)}
+
+/* Bigger touch targets on phones and tablets */
+@media (pointer:coarse){
+  .chip{min-height:38px;padding:7px 13px;font-size:13px}
+  .seg button{min-height:34px;padding:6px 12px;font-size:12.5px}
+  .favbtn{min-height:36px;padding:7px 14px;font-size:12px}
+  .favchip{padding:4px 4px 4px 11px;font-size:12.5px}
+  .favchip button{min-width:32px;min-height:32px;font-size:16px}
+  .addteams,.range{min-height:38px}
+  .link{padding:9px 4px}
+  .tog{min-height:36px}
+  .more{min-height:40px;padding:9px 16px}
+  .td-lgs button{min-height:36px;padding:6px 12px}
+  .td-row{min-height:46px}
+  .x{min-width:40px;min-height:40px}
+  .hbtn{min-height:38px}
+  .btn{min-height:38px}
+}
+
 .subf{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:2px}
 .subf .lab{font-size:11px;font-weight:600;color:#5A606B;letter-spacing:.04em;margin-right:-2px}
 .seg{display:inline-flex;border:1px solid #20242C;border-radius:999px;overflow:hidden}
@@ -295,9 +350,12 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
       <span class="tagline">Excitement Tracker</span>
     </div>
     <div class="conn" aria-live="polite"><span class="dot" id="connDot"></span><span id="connText">Connecting…</span></div>
+    <button class="hbtn" id="spoilBtn" type="button" aria-pressed="false" title="Hide scores (spoiler-free)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path class="slash" d="M4 4l16 16"/></svg><span class="hl">Scores</span></button>
+    <button class="hbtn" id="alertBtn" type="button" aria-pressed="true" title="Must-watch alerts"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/><path class="slash" d="M4 4l16 16"/></svg><span class="hl">Alerts</span></button>
     <button class="btn" id="refreshBtn" type="button">Refresh</button>
   </div>
 </header>
+<div class="toasts" id="toasts" aria-live="assertive"></div>
 
 <main class="wrap">
   <div class="leagues">
@@ -313,6 +371,8 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
   <div class="banner" id="sampleBanner" hidden><b>Sample games.</b> ESPN's scoreboards can't be reached from here, so these made-up games show how Pulse rates them. Hosted on its own site (Netlify, for example), Pulse shows live scores.</div>
 
   <div id="loading" class="loading">Loading scoreboards…</div>
+
+  <section class="block best" id="bestSec" hidden aria-label="Best game right now"></section>
 
   <section class="block" id="favSec" hidden>
     <div class="sec-head"><h2 class="sec-title"><button class="tog" type="button" data-tog="favs" aria-expanded="true"><span class="chev" aria-hidden="true"></span><span class="favstar" aria-hidden="true">★</span> My teams</button></h2><span class="count" id="favCount"></span>
@@ -354,7 +414,7 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
   </section>
 </main>
 
-<p class="build" id="build">Pulse build 2026-11-06 · cleanup and fixes</p>
+<p class="build" id="build">Pulse build 2026-11-06b · best right now, alerts, spoiler-free, offline</p>
 
 <dialog id="howDlg" aria-labelledby="howTitle">
   <div class="m-in how">
@@ -491,6 +551,8 @@ const store = {
 
 let selected = new Set(store.get("pulse.leagues", LEAGUES.map(l => l.id)));
 let liveOnly = !!store.get("pulse.liveOnly", false);
+let spoil = !!store.get("pulse.noSpoilers", false);      // spoiler-free: hide scores everywhere
+let alertsOn = store.get("pulse.alerts", true) !== false;
 let upsetOnly = !!store.get("pulse.upsetOnly", false);
 let finRange = store.get("pulse.finRange", "today") === "week" ? "week" : "today";
 let weekLoading = false;
@@ -675,6 +737,7 @@ function parseEvent(ev, L){
     outs: comp.situation && typeof comp.situation.outs === "number" ? comp.situation.outs : null,
     sit: parseSit(comp, home, away, L),
     date: ev.date, home, away,
+    tbd: type.state === "pre" && (comp.timeValid === false || ev.timeValid === false || /\bTBD\b/i.test(type.shortDetail || type.detail || "")),
     odds: parseOdds(comp, home, away, L),
     note, conf: !!comp.conferenceCompetition,
     group: comp.groups && (comp.groups.shortName || comp.groups.name) || "",
@@ -1024,7 +1087,7 @@ function rate(g){
     const label = jo.j.kind === "tie" ? (who ? who + " tied it!" : "Game tied!")
       : jo.j.kind === "ahead" ? (who ? who + " took the lead" : "Go-ahead score")
       : (who ? who + " scored" : "Just scored");
-    tags.push([label, jo.j.kind === "score" ? "hot" : "red"]);
+    tags.push([label, jo.j.kind === "score" ? "hot" : "red", true]);   // true = reveals the score
   }
   tags.push(...mo.tags);
   if (mm.v > 4) tags.push([mm.why, "hot"]);
@@ -1225,7 +1288,7 @@ async function refresh(){
   busy = true;
   $("#refreshBtn").disabled = true;
   try { await doRefresh(); }
-  catch (e) { console.error(e); setConn("warn", "Update failed · retrying"); }
+  catch (e) { console.error(e); setConn("warn", "Update failed", conn.at, "retrying", true); }
   finally {
     busy = false;
     $("#refreshBtn").disabled = false;
@@ -1234,6 +1297,7 @@ async function refresh(){
 }
 async function doRefresh(){
   if (!games.length && !usingSample) setConn("", "Connecting…");
+  const lastOk = conn.at;          // time of the last good update
   const ids = LEAGUES.map(l => l.id);
   const prevBy = id => games.filter(g => g.lg === id && !usingSample);
   const fetchOrReuse = L => (!watched(L) && lastFetch[L.id] && Date.now() - lastFetch[L.id] < 300e3 && L.id !== "epl")
@@ -1262,7 +1326,7 @@ async function doRefresh(){
 
   if (okCount === 0 && hadReal){
     // Connection dropped after real data loaded: keep showing the last real games and retry.
-    setConn("warn", "Offline · showing last update · retrying");
+    setConn("warn", "Offline", lastOk, "retrying", true);
     render();
     return;
   }
@@ -1283,43 +1347,108 @@ async function doRefresh(){
       for (const g of await pastWeekFinals()) if (!seen.has(g.id)){ seen.add(g.id); next.push(g); }
     }
     ingest(next);
-    const t = new Date().toLocaleTimeString([], {hour:"numeric", minute:"2-digit", second:"2-digit"});
     const anyLive = next.some(g => g.state === "in");
     const failed = CHIPS.filter(l => !leagueState[l.id].ok && !leagueState[l.id].stale).length;
-    setConn(anyLive ? "live" : "ok", (anyLive ? "Live" : "Connected") + " · updated " + t + (failed ? " · " + failed + " league" + (failed > 1 ? "s" : "") + " unavailable" : ""));
+    setConn(anyLive ? "live" : "ok", anyLive ? "Live" : "Connected", Date.now(), failed ? failed + " league" + (failed > 1 ? "s" : "") + " unavailable" : "");
+    saveSnapshot(next);
   }
   $("#sampleBanner").hidden = !usingSample;
 }
 
-function ingest(list){
+function ingest(list, restore){
+  // restore = showing the saved last update on launch: rate it, but don't record it as new history.
   for (const g of list){
     const L = LG[g.lg];
     const {p} = progress(g, L);
-    recordSnapshot(g, p);
-    g.p = p; noteScoring(g);
+    if (!restore) recordSnapshot(g, p);
+    g.p = p; if (!restore) noteScoring(g);
   }
   pruneHistory();
   games = list.map(rate);
-  for (const g of games) afterglow(g);
-  for (const g of games) recordExcitement(g);
-  store.set("pulse.hist", history);
+  if (!restore){
+    for (const g of games) afterglow(g);
+    for (const g of games) recordExcitement(g);
+    store.set("pulse.hist", history);
+  }
   for (const g of games){ g.curve = buildCurve(g); g.delta = recentDelta(g); }
+  if (!restore && !usingSample) checkAlerts();
   render();
+}
+
+/* ---------- Saved last update: shown instantly on launch, and when offline ---------- */
+const DERIVED = ["curve", "parts", "tags", "hypeParts", "hype", "score", "p", "ot", "delta", "glow", "_at"];
+function saveSnapshot(list){
+  try {
+    const slim = list.map(g => { const o = {...g}; for (const k of DERIVED) delete o[k]; return o; });
+    localStorage.setItem("pulse.snap", JSON.stringify({at: Date.now(), games: slim}));
+  } catch {}
+}
+function restoreSnapshot(){
+  const snap = store.get("pulse.snap", null);
+  if (!snap || !Array.isArray(snap.games) || Date.now() - snap.at > 18 * 3600e3) return false;
+  hadReal = true;
+  ingest(snap.games, true);
+  setConn("", "Saved", snap.at, "refreshing");
+  return true;
+}
+
+/* ---------- Must-watch alerts: a game crossing 80 while Pulse is open ---------- */
+const alertSeen = {};          // gameId -> last score seen
+const alertArmed = {};         // gameId -> false after alerting, re-armed when it drops below 70
+function checkAlerts(){
+  for (const g of games){
+    if (g.state !== "in"){ delete alertSeen[g.id]; continue; }
+    const prev = alertSeen[g.id];
+    alertSeen[g.id] = g.score;
+    if (g.score < 70) alertArmed[g.id] = true;
+    const mine = isFavGame(g);
+    if (!selected.has(chipOf(g.lg)) && !mine) continue;
+    if (prev != null && prev < 80 && g.score >= 80 && alertArmed[g.id] !== false){
+      alertArmed[g.id] = false;
+      if (alertsOn) toast(g, mine);
+    }
+  }
+}
+function toast(g, mine){
+  const box = $("#toasts");
+  while (box.children.length >= 3) box.firstElementChild.remove();
+  const w = watchOptions(g)[0];
+  const el = document.createElement("div");
+  el.className = "toast"; el.style.setProperty("--zc", colorAt(g.score));
+  el.innerHTML = `<div><div class="tt">${mine ? "★ Your team · " : ""}Must-watch · ${g.score}</div>
+    <div class="tb">${esc(g.away.name)} at ${esc(g.home.name)}${spoil ? "" : " · " + g.away.score + "–" + g.home.score} · ${esc(statusText(g))}</div></div>
+    <button class="tx" type="button" aria-label="Dismiss">✕</button>
+    <div class="ta">${w ? `<a class="btn watch" style="background:${w.w.color};border-color:${w.w.color};color:${w.w.text}" href="${w.w.url(g)}" target="_blank" rel="noopener">▶ Watch</a>` : ""}<button class="btn" type="button" data-open="${esc(g.id)}">Details</button></div>`;
+  el.querySelector(".tx").onclick = () => el.remove();
+  box.appendChild(el);
+  try { navigator.vibrate && navigator.vibrate([120, 60, 120]); } catch {}
+  setTimeout(() => el.remove(), 15000);
 }
 
 function schedule(){
   clearTimeout(timer);
   if (document.visibilityState === "hidden") return;          // paused in the background
-  const offline = /Offline|failed/.test($("#connText").textContent);
+  const offline = conn.offline;
   const anyLive = games.some(g => g.state === "in");
   // Sample mode and offline retry every minute / 30 s so real data comes back on its own.
   timer = setTimeout(refresh, usingSample ? 60000 : offline ? 30000 : anyLive ? 20000 : 300000);
 }
 
-function setConn(kind, text){
-  $("#connDot").className = "dot" + (kind ? " " + kind : "");
-  $("#connText").textContent = text;
+/* Connection line: a label plus a live "updated Xs ago" that turns amber when data is stale. */
+let conn = {kind:"", label:"Connecting…", at:0, extra:"", offline:false};
+function setConn(kind, label, at, extra, offline){
+  conn = {kind, label, at: at || 0, extra: extra || "", offline: !!offline};
+  paintConn();
 }
+function ago(ms){ const s = Math.max(0, Math.round(ms / 1000)); return s < 60 ? s + "s ago" : s < 3600 ? Math.round(s / 60) + "m ago" : Math.round(s / 3600) + "h ago"; }
+function paintConn(){
+  const age = conn.at ? Date.now() - conn.at : 0;
+  const anyLive = games.some(g => g.state === "in");
+  const stale = conn.at && (conn.offline || age > (anyLive ? 75e3 : 7 * 60e3));
+  $("#connDot").className = "dot" + (stale ? " warn" : conn.kind ? " " + conn.kind : "");
+  $("#connText").innerHTML = esc(conn.label) + (conn.at ? ` · <span class="ago${stale ? " stale" : ""}">updated ${ago(age)}</span>` : "") + (conn.extra ? " · " + esc(conn.extra) : "");
+}
+setInterval(() => { if (conn.at) paintConn(); }, 1000);
 
 /* ---------- Rendering ---------- */
 function statusText(g){
@@ -1328,7 +1457,7 @@ function statusText(g){
     if (isNaN(d)) return g.detail;
     const today = new Date();
     const sameDay = d.toDateString() === today.toDateString();
-    const time = d.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});
+    const time = g.tbd ? "· Time TBD" : d.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});
     return sameDay ? "Today " + time : d.toLocaleDateString([], {weekday:"short", month:"short", day:"numeric"}) + " " + time;
   }
   return g.detail || (g.state === "post" ? "Final" : "Live");
@@ -1365,16 +1494,16 @@ function sitHTML(g){
 }
 function cardTeam(t, g, other){
   const showScore = g.state !== "pre";
-  const cls = g.state === "post" ? (t.score > other.score ? " win" : t.score < other.score ? " lose" : "") : "";
+  const cls = g.state === "post" && !spoil ? (t.score > other.score ? " win" : t.score < other.score ? " lose" : "") : "";
   return `<div class="tm${cls}">${logoHTML(t, 24)}
     <span class="nm">${t.rank ? `<span class="rk">${t.rank}</span>` : ""}${esc(t.name)}${isFav(g, t) ? '<span class="fv" aria-label="favorite">★</span>' : ""}${!showScore && t.record ? `<span class="rec">${esc(t.record)}</span>` : ""}</span>
-    <span class="sc">${showScore ? t.score : ""}</span></div>`;
+    <span class="sc">${showScore ? (spoil ? "–" : t.score) : ""}</span></div>`;
 }
 /* Matchup flags shown on every card: rivalry, ranked matchup, postseason, upset, overtime. */
 function cardFlags(g){
   const f = [];
   if (g.ot && g.state !== "pre") f.push(["OT", "red"]);
-  if (g.parts && g.parts.upset > 4) f.push([g.state === "post" ? "Upset" : "Upset watch", "hot"]);
+  if (g.parts && g.parts.upset > 4 && !spoil) f.push([g.state === "post" ? "Upset" : "Upset watch", "hot"]);
   if (g.home.rank && g.away.rank) f.push(["Top 25 matchup", "hot"]);
   else if (g.home.rank || g.away.rank){ /* a single ranked team is shown by its number */ }
   if (rivalGame(g)) f.push(["Rivalry", "riv"]);
@@ -1395,7 +1524,7 @@ function card(g){
   }
   const word = g.state === "pre" ? "hype" : g.state === "post" ? "final" : "now";
   const lg = esc(L.label) + (g.group && /^ncaa/.test(g.lg) ? " · " + esc(g.group) : "");
-  return `<button class="gc${g.state === "pre" ? " pre" : ""}${isFavGame(g) ? " isfav" : ""}" type="button" data-id="${esc(g.id)}" style="--zc:${col}" aria-label="${esc(g.away.name)}${g.state !== "pre" ? " " + g.away.score : ""} at ${esc(g.home.name)}${g.state !== "pre" ? " " + g.home.score : ""}, ${esc(statusText(g))}, excitement ${g.score}">
+  return `<button class="gc${g.state === "pre" ? " pre" : ""}${isFavGame(g) ? " isfav" : ""}" type="button" data-id="${esc(g.id)}" style="--zc:${col}" aria-label="${esc(g.away.name)}${g.state !== "pre" && !spoil ? " " + g.away.score : ""} at ${esc(g.home.name)}${g.state !== "pre" && !spoil ? " " + g.home.score : ""}, ${esc(statusText(g))}, excitement ${g.score}">
     <span class="bar"></span>
     <div class="body">
       ${cardTeam(g.away, g, g.home)}
@@ -1436,6 +1565,21 @@ function renderChips(){
 
 /* My teams: every game for a followed team, whatever the league buttons or filters say.
    Live first (hottest), then upcoming by start time (next 7 days), then today's finals. */
+/* Best right now: the hottest live game (from your selected leagues) with a one-tap Watch. */
+function renderBest(live){
+  const g = live[0], sec = $("#bestSec");
+  if (!g || g.score < 40){ sec.hidden = true; sec.innerHTML = ""; return; }
+  sec.hidden = false;
+  const w = watchOptions(g)[0];
+  const cr = crunchLevel(g);
+  sec.innerHTML = `<div class="best-card" data-open="${esc(g.id)}" style="--zc:${colorAt(g.score)}" role="button" tabindex="0" aria-label="Best game right now: ${esc(g.away.name)} at ${esc(g.home.name)}, excitement ${g.score}">
+    <p class="eyebrow"><i aria-hidden="true"></i>Best right now · ${esc(LG[g.lg].label)}</p>
+    <div class="bm"><div class="bt">${esc(g.away.name)} at ${esc(g.home.name)}</div>
+      <div class="bs">${spoil ? "" : `<b>${g.away.score}–${g.home.score}</b> · `}<span${cr ? ` style="color:${CRUNCH[cr]};font-weight:600"` : ""}>${esc(statusText(g))}</span>${(g.tags || []).filter(t => !(spoil && t[2]))[0] ? " · " + esc(g.tags.filter(t => !(spoil && t[2]))[0][0]) : ""}</div></div>
+    <div class="bn">${g.score}<small>${esc(zone(g.score).name)}</small></div>
+    <div class="ba">${w ? `<a class="btn watch" style="background:${w.w.color};border-color:${w.w.color};color:${w.w.text}" href="${w.w.url(g)}" target="_blank" rel="noopener">▶ Watch${w.w.id === "yttv" ? " · " + esc(w.nets[0]) : " on " + esc(w.w.label)}</a>` : ""}<button class="btn" type="button" data-open="${esc(g.id)}">Details</button></div>
+  </div>`;
+}
 function renderFavs(){
   const keys = Object.keys(favs);
   $("#favSec").hidden = false;
@@ -1528,7 +1672,8 @@ function render(){
   const now = new Date(), todayKey = dayKey({date: now});
   const week = Date.now() + 7 * 24 * 3600e3;
   // Sort: day, then start time, then hype (highest first).
-  const startT = g => { const t = new Date(g.date).getTime(); return isNaN(t) ? Infinity : t; };
+  // TBD kickoffs sort to the end of their day.
+  const startT = g => { const t = new Date(g.date).getTime(); if (isNaN(t)) return Infinity; if (!g.tbd) return t; const e = new Date(t); e.setHours(23, 59, 59); return e.getTime(); };
   const byDay = (a, b) => dayKey(a).localeCompare(dayKey(b)) || (startT(a) - startT(b)) || (b.score - a.score);
   const todayList = up.filter(g => dayKey(g) <= todayKey).sort(byDay);
   const upList = up.filter(g => dayKey(g) > todayKey && new Date(g.date) <= week).sort(byDay);
@@ -1540,6 +1685,7 @@ function render(){
   $("#liveEmpty").textContent = (!selected.size ? "Pick a league above to see games." : upsetOnly ? "No live upsets right now." : "No live games in your leagues right now.") + (finAll.length || upList.length || todayList.length ? (liveOnly ? " Turn off the Live filter to see upcoming and finished games." : " Finished and upcoming games are below.") : "");
   $("#liveCount").textContent = live.length ? live.length + " game" + (live.length > 1 ? "s" : "") + " live" : "";
   liveList = live;
+  renderBest(live);
   renderFavs();
   drawLive();
 
@@ -1652,7 +1798,7 @@ function valueAt(pts, p){
   for (let i = 1; i < pts.length; i++) if (pts[i].p >= p) return (p - pts[i - 1].p) < (pts[i].p - p) ? pts[i - 1] : pts[i];
   return pts[pts.length - 1];
 }
-const scoreText = (g, pt) => `${esc(g.away.abbr || g.away.name)} ${pt.a}–${pt.h} ${esc(g.home.abbr || g.home.name)}`;
+const scoreText = (g, pt) => spoil ? `${esc(g.away.abbr || g.away.name)} at ${esc(g.home.abbr || g.home.name)}` : `${esc(g.away.abbr || g.away.name)} ${pt.a}–${pt.h} ${esc(g.home.abbr || g.home.name)}`;
 
 /* Live overview: every live game's excitement against the clock on the wall. */
 let liveList = [], liveGeo = null;
@@ -1705,7 +1851,7 @@ function drawLive(){
   const lx = pad.l + pw + 7;
   svg += labs.map(({g, y: ly}) => {
     const ab = t => esc(t.abbr || t.name);
-    return `<text class="lbl" data-id="${esc(g.id)}" x="${lx}" y="${ly + 3}" font-size="8.6" font-family="${F}"><tspan fill="${colorAt(g.score)}" font-weight="700">${g.score}</tspan><tspan fill="#E8EBF0" font-weight="600"> ${ab(g.away)} ${g.away.score}-${g.home.score} ${ab(g.home)}</tspan><tspan fill="${CRUNCH[crunchLevel(g)] || "#6E7681"}" font-size="7.4"${crunchLevel(g) ? ' font-weight="700"' : ""}> ${esc(statusText(g))}</tspan></text>`;
+    return `<text class="lbl" data-id="${esc(g.id)}" x="${lx}" y="${ly + 3}" font-size="8.6" font-family="${F}"><tspan fill="${colorAt(g.score)}" font-weight="700">${g.score}</tspan><tspan fill="#E8EBF0" font-weight="600"> ${spoil ? ab(g.away) + " @ " + ab(g.home) : ab(g.away) + " " + g.away.score + "-" + g.home.score + " " + ab(g.home)}</tspan><tspan fill="${CRUNCH[crunchLevel(g)] || "#6E7681"}" font-size="7.4"${crunchLevel(g) ? ' font-weight="700"' : ""}> ${esc(statusText(g))}</tspan></text>`;
   }).join("");
   el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Excitement of each live game over time">${svg}</svg>`;
   liveGeo = {x, y, t0, t1, series, svg: el.querySelector("svg")};
@@ -1845,11 +1991,11 @@ function nowBox(g){
   if (g.state !== "in") return "";
   const s = g.sit || {};
   const sit = sitHTML(g);
-  const lp = s.lastPlay && s.lastPlay.text ? `<div class="lp"><b>Last play:</b> ${esc(s.lastPlay.text)}</div>` : "";
+  const lp = !spoil && s.lastPlay && s.lastPlay.text ? `<div class="lp"><b>Last play:</b> ${esc(s.lastPlay.text)}</div>` : "";
   const evt = x => esc(sideName(g, x.side) || "?") + (x.who ? " (" + esc(x.who) + (x.og ? ", own goal" : x.pen ? ", pen" : "") + ")" : "") + " " + Math.round(x.min) + "′";
-  const goals = (s.goals && s.goals.length ? `<div class="lp"><b>Goals:</b> ${s.goals.map(evt).join(" · ")}</div>` : "") +
+  const goals = spoil ? "" : (s.goals && s.goals.length ? `<div class="lp"><b>Goals:</b> ${s.goals.map(evt).join(" · ")}</div>` : "") +
     (s.reds && s.reds.length ? `<div class="lp"><b style="color:#F08A90">Red card${s.reds.length > 1 ? "s" : ""}:</b> ${s.reds.map(evt).join(" · ")}</div>` : "");
-  const tags = (g.tags || []).slice(0, 4).map(([t, c]) => `<span class="tag ${c}">${esc(t)}</span>`).join("");
+  const tags = (g.tags || []).filter(t => !(spoil && t[2])).slice(0, 4).map(([t, c]) => `<span class="tag ${c}">${esc(t)}</span>`).join("");
   if (!sit && !lp && !goals && !tags) return "";
   return `<div class="now-box"><p class="eyebrow">Right now</p>${sit}${lp}${goals}${tags ? `<div class="tags">${tags}</div>` : ""}</div>`;
 }
@@ -1886,7 +2032,7 @@ function fillGame(g){
     </div>
     <div class="score-line">
       <div class="side">${logoHTML(g.away, 36)}<span class="nm">${g.away.rank ? "#" + g.away.rank + " " : ""}${esc(g.away.name)}</span><span class="note">${esc(g.away.record)}</span><button class="favbtn" type="button" data-fav="away" aria-pressed="${isFav(g, g.away)}">${isFav(g, g.away) ? "★ Following" : "☆ Follow"}</button></div>
-      <div class="mid">${g.state === "pre" ? "vs" : `<span class="big">${g.away.score}–${g.home.score}</span>`}<div${crunchLevel(g) ? ` style="color:${CRUNCH[crunchLevel(g)]};font-weight:700"` : ""}>${esc(statusText(g))}</div>${g.series ? `<div style="text-transform:none;letter-spacing:0;margin-top:3px">${esc(g.series.summary)}${g.series.decider ? " · winner take all" : g.series.elim ? " · " + esc(sideName(g, g.series.facing) || "a team") + " facing elimination" : ""}</div>` : ""}</div>
+      <div class="mid">${g.state === "pre" ? "vs" : `<span class="big">${spoil ? "– –" : g.away.score + "–" + g.home.score}</span>`}<div${crunchLevel(g) ? ` style="color:${CRUNCH[crunchLevel(g)]};font-weight:700"` : ""}>${esc(statusText(g))}</div>${g.series ? `<div style="text-transform:none;letter-spacing:0;margin-top:3px">${esc(g.series.summary)}${g.series.decider ? " · winner take all" : g.series.elim ? " · " + esc(sideName(g, g.series.facing) || "a team") + " facing elimination" : ""}</div>` : ""}</div>
       <div class="side">${logoHTML(g.home, 36)}<span class="nm">${g.home.rank ? "#" + g.home.rank + " " : ""}${esc(g.home.name)}</span><span class="note">${esc(g.home.record)}</span><button class="favbtn" type="button" data-fav="home" aria-pressed="${isFav(g, g.home)}">${isFav(g, g.home) ? "★ Following" : "☆ Follow"}</button></div>
     </div>
     <div class="big-dial" style="--z:${z.c};--v:${g.score}">
@@ -1897,7 +2043,7 @@ function fillGame(g){
     ${g.curve && g.curve.length > 1 ? `<div class="chart-box"><p class="eyebrow chart-t">Excitement through the game</p><div class="plot" id="exChart"></div><div class="tip" id="exTip" hidden></div>
       <div class="note">Starts at the pregame hype. Period-end points are rebuilt from the box score; Pulse fills in the moments between while it's open.</div></div>` : ""}
     ${P ? `<div class="bd">${rows}</div>` : ""}
-    ${marginChart(g)}
+    ${spoil ? "" : marginChart(g)}
     <div><p class="eyebrow" style="margin-bottom:6px">Hype score ${Math.round(g.hype)}</p><div class="bd">${hypeRows}</div>
     ${g.odds && g.odds.text ? `<div class="note" style="margin-top:6px">Line: ${esc(g.odds.text)}</div>` : ""}</div>
     ${g.venue || g.broadcast ? `<div class="note">${esc([g.venue, g.broadcast].filter(Boolean).join(" · "))}</div>` : ""}
@@ -2026,6 +2172,11 @@ $("#tdList").addEventListener("click", e => {
   render();
 });
 $("#upsetOnly").addEventListener("click", () => { upsetOnly = !upsetOnly; store.set("pulse.upsetOnly", upsetOnly); render(); });
+$("#spoilBtn").addEventListener("click", () => { spoil = !spoil; store.set("pulse.noSpoilers", spoil); syncHeader(); render(); if (openId){ const g = games.find(x => x.id === openId); if (g) fillGame(g); } });
+$("#alertBtn").addEventListener("click", () => { alertsOn = !alertsOn; store.set("pulse.alerts", alertsOn); syncHeader(); });
+function syncHeader(){ $("#spoilBtn").setAttribute("aria-pressed", spoil); $("#alertBtn").setAttribute("aria-pressed", alertsOn); }
+syncHeader();
+$("#bestSec").addEventListener("keydown", e => { if ((e.key === "Enter" || e.key === " ") && e.target.matches(".best-card")){ e.preventDefault(); openGame(e.target.dataset.open); } });
 $("#liveOnly").addEventListener("click", () => { liveOnly = !liveOnly; store.set("pulse.liveOnly", liveOnly); render(); });
 $("#selAll").addEventListener("click", () => { selected = new Set(LEAGUES.map(l => l.id)); store.set("pulse.leagues", [...selected]); render(); });
 $("#selNone").addEventListener("click", () => { selected = new Set(); store.set("pulse.leagues", []); render(); });
@@ -2041,6 +2192,9 @@ document.addEventListener("click", e => {
     const again = document.querySelector(`[data-tog="${CSS.escape(key)}"]`); if (again) again.focus();
     return;
   }
+  if (e.target.closest("a.watch")) return;                 // let watch links open the app
+  const op = e.target.closest("[data-open]");
+  if (op){ openGame(op.dataset.open); return; }
   const fb = e.target.closest("[data-fav]");
   if (fb && openId){ const g = games.find(x => x.id === openId); if (g){ toggleFav(g, fb.dataset.fav); render(); fillGame(g); } return; }
   const uf = e.target.closest("[data-unfav]");
@@ -2059,7 +2213,9 @@ document.addEventListener("visibilitychange", () => {
 });
 
 renderChips();
+restoreSnapshot();          // show the last update instantly, then fetch fresh data
 refresh();
+if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
 })();
 </script>
 </body>
