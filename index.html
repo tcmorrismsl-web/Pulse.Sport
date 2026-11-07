@@ -51,7 +51,11 @@ header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background
 .wordmark{font-family:var(--display);font-weight:900;font-size:34px;letter-spacing:.02em;line-height:1;margin:0}
 .wordmark span{color:var(--must)}
 .tagline{font-family:var(--label);text-transform:uppercase;letter-spacing:.14em;font-size:12px;color:var(--muted)}
-.conn{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.conn{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;min-width:0}
+.conn #connText{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Header buttons stay together on one line, in a fixed order, and never wrap */
+.hacts{display:flex;align-items:center;gap:7px;flex:none;flex-wrap:nowrap}
+.hacts .btn{padding:5px 11px;font-size:11.7px;border-radius:6px;white-space:nowrap}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--faint);flex:none}
 .dot.live{background:var(--must);box-shadow:0 0 0 0 rgba(255,71,87,.6);animation:beat 1.6s infinite}
 .dot.ok{background:var(--comp)}
@@ -125,7 +129,8 @@ header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background
 .td-row[aria-pressed="true"] .st{color:#F5C451}
 .td-note{color:var(--muted);font-size:13px;padding:10px 4px}
 /* Header icon buttons */
-.hbtn{display:inline-flex;align-items:center;gap:6px;background:transparent;border:1px solid #262A35;border-radius:8px;color:#88909A;padding:6px 10px;font-family:var(--body);font-size:12px;font-weight:600;cursor:pointer}
+.hbtn{display:inline-flex;align-items:center;gap:5px;background:transparent;border:1px solid #262A35;border-radius:7px;color:#88909A;padding:5px 9px;font-family:var(--body);font-size:10.8px;font-weight:600;cursor:pointer;white-space:nowrap}
+.hbtn svg{width:16px;height:16px;flex:none}
 .hbtn:hover{color:var(--text);border-color:#343A44}
 .hbtn .slash{display:none}
 #spoilBtn[aria-pressed="true"]{color:#F5C451;border-color:#6B5A2A;background:#1E1910}
@@ -162,8 +167,9 @@ header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background
   .td-lgs button{min-height:36px;padding:6px 12px}
   .td-row{min-height:46px}
   .x{min-width:40px;min-height:40px}
-  .hbtn{min-height:38px}
+  .hbtn{min-height:34px}
   .btn{min-height:38px}
+  .hacts .btn{min-height:34px}
 }
 
 .subf{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:2px}
@@ -328,6 +334,15 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
 .tip .tz{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px;vertical-align:0}
 .tip .tm{color:var(--muted)}
 
+@media (max-width:620px){
+  .top-in{display:grid;grid-template-columns:auto auto;justify-content:space-between;align-items:center;gap:8px 8px}
+  .brand{margin-right:0;grid-column:1;grid-row:1}
+  .hacts{grid-column:2;grid-row:1}
+  .conn{grid-column:1 / -1;grid-row:2}
+  #spoilBtn[aria-pressed="true"] .hl::after{content:""}
+}
+@media (max-width:389px){ .wordmark{font-size:24px!important} .hacts{gap:6px} }
+@media (max-width:359px){ .hbtn .hl{display:none} }
 @media (max-width:520px){
   .wordmark{font-size:28px}
   .tagline{display:none}
@@ -346,9 +361,11 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
       <span class="tagline">Excitement Tracker</span>
     </div>
     <div class="conn" aria-live="polite"><span class="dot" id="connDot"></span><span id="connText">Connecting…</span></div>
+    <div class="hacts">
     <button class="hbtn" id="spoilBtn" type="button" aria-pressed="false" title="Hide scores (spoiler-free)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path class="slash" d="M4 4l16 16"/></svg><span class="hl">Scores</span></button>
     <button class="hbtn" id="alertBtn" type="button" aria-pressed="true" title="Must-watch alerts"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/><path class="slash" d="M4 4l16 16"/></svg><span class="hl">Alerts</span></button>
     <button class="btn" id="refreshBtn" type="button">Refresh</button>
+    </div>
   </div>
 </header>
 <div class="toasts" id="toasts" aria-live="assertive"></div>
