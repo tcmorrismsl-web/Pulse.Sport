@@ -65,7 +65,7 @@ Games on a network YouTube TV carries (ABC, CBS, NBC, FOX, the ESPN networks, SE
 
 ## At a glance
 
-- **Best right now:** the hottest live game in your leagues sits at the top with a one-tap Watch button.
+- **Filters:** the league buttons, Live, Upsets and Power 4 fold away under **Filters** at the top. Tap it to open them; the line next to it says what is on (for example "NFL, NBA · Live only"). Pulse remembers whether you left it open.
 - **Must-watch alerts:** while Pulse is open, a banner (and a buzz on phones that support it) pops up when a live game in your leagues, or one of your teams' games, crosses 80. Each game alerts once until it cools below 70. The bell in the header turns alerts off.
 - **Spoiler-free:** the eye in the header hides every score (cards, chart, popup, banner, alerts, last plays) and keeps the excitement numbers.
 - **TBD kickoffs:** games without a set time show "Time TBD" and sort to the end of their day.
