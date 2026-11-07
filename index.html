@@ -106,6 +106,7 @@ header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background
 .favchip button{background:none;border:0;color:#8A7A55;font-size:13px;line-height:1;cursor:pointer;padding:0 2px}
 .favchip button:hover{color:#F5C451}
 .fav-empty{color:var(--muted);font-size:13px;margin:0 0 6px}
+.ball{display:inline-block;font-size:.72em;line-height:1;margin-left:5px;vertical-align:.08em;font-style:normal}
 /* My teams: a compact row under Filters, scores only */
 .favrow{margin-top:12px;padding-top:12px;border-top:1px solid #1C2128;display:grid;gap:10px}
 .favrow[hidden]{display:none}
@@ -1599,11 +1600,17 @@ function sitHTML(g){
   const t = sitText(g);
   return t ? `<div class="sit${t.hot ? " rz" : ""}">${t.html}</div>` : "";
 }
+/* Football only: a small football next to the team with the ball while the game is live. */
+function hasBall(g, t){
+  const L = LG[g.lg];
+  return g.state === "in" && !!L && /^football\//.test(L.path) && !!g.sit && !!g.sit.poss && g[g.sit.poss] === t;
+}
+const BALL = '<span class="ball" role="img" aria-label="has the ball">🏈</span>';
 function cardTeam(t, g, other){
   const showScore = g.state !== "pre";
   const cls = g.state === "post" && !spoil ? (t.score > other.score ? " win" : t.score < other.score ? " lose" : "") : "";
   return `<div class="tm${cls}">${logoHTML(t, 24)}
-    <span class="nm">${t.rank ? `<span class="rk">${t.rank}</span>` : ""}${esc(t.name)}${isFav(g, t) ? '<span class="fv" aria-label="favorite">★</span>' : ""}${!showScore && t.record ? `<span class="rec">${esc(t.record)}</span>` : ""}</span>
+    <span class="nm">${t.rank ? `<span class="rk">${t.rank}</span>` : ""}${esc(t.name)}${hasBall(g, t) ? BALL : ""}${isFav(g, t) ? '<span class="fv" aria-label="favorite">★</span>' : ""}${!showScore && t.record ? `<span class="rec">${esc(t.record)}</span>` : ""}</span>
     <span class="sc">${showScore ? (spoil ? "–" : t.score) : ""}</span></div>`;
 }
 /* Matchup flags shown on every card: rivalry, ranked matchup, postseason, upset, overtime. */
@@ -1699,7 +1706,7 @@ function favStatus(g){
 }
 function favRow(g){
   const showScore = g.state !== "pre" && !spoil;
-  const side = (t, o) => `<span class="t${g.state === "post" && !spoil && t.score < o.score ? " lose" : ""}">${logoHTML(t, 16)}<span class="n">${esc(t.abbr || t.name)}${isFav(g, t) ? '<span class="fv" aria-hidden="true">★</span>' : ""}</span><span class="s">${showScore ? t.score : ""}</span></span>`;
+  const side = (t, o) => `<span class="t${g.state === "post" && !spoil && t.score < o.score ? " lose" : ""}">${logoHTML(t, 16)}<span class="n">${esc(t.abbr || t.name)}${hasBall(g, t) ? BALL : ""}${isFav(g, t) ? '<span class="fv" aria-hidden="true">★</span>' : ""}</span><span class="s">${showScore ? t.score : ""}</span></span>`;
   const L = LG[g.lg];
   return `<button class="fsr" type="button" data-open="${esc(g.id)}" style="--lc:${lgColor(g.lg)};--zc:${colorAt(g.score)}" aria-label="${esc(L.label)}: ${esc(g.away.name)}${showScore ? " " + g.away.score : ""} at ${esc(g.home.name)}${showScore ? " " + g.home.score : ""}, ${esc(statusText(g))}, excitement ${g.score}">
     <span class="lb" aria-hidden="true"></span>
@@ -2174,9 +2181,9 @@ function fillGame(g){
       </div>
     </div>
     <div class="score-line">
-      <div class="side">${logoHTML(g.away, 36)}<span class="nm">${g.away.rank ? "#" + g.away.rank + " " : ""}${esc(g.away.name)}</span><span class="note">${esc(g.away.record)}</span><button class="favbtn" type="button" data-fav="away" aria-pressed="${isFav(g, g.away)}">${isFav(g, g.away) ? "★ Following" : "☆ Follow"}</button></div>
+      <div class="side">${logoHTML(g.away, 36)}<span class="nm">${g.away.rank ? "#" + g.away.rank + " " : ""}${esc(g.away.name)}${hasBall(g, g.away) ? BALL : ""}</span><span class="note">${esc(g.away.record)}</span><button class="favbtn" type="button" data-fav="away" aria-pressed="${isFav(g, g.away)}">${isFav(g, g.away) ? "★ Following" : "☆ Follow"}</button></div>
       <div class="mid">${g.state === "pre" ? "vs" : `<span class="big">${spoil ? "– –" : g.away.score + "–" + g.home.score}</span>`}<div${crunchLevel(g) ? ` style="color:${CRUNCH[crunchLevel(g)]};font-weight:700"` : ""}>${esc(statusText(g))}</div>${g.series ? `<div style="text-transform:none;letter-spacing:0;margin-top:3px">${esc(g.series.summary)}${g.series.decider ? " · winner take all" : g.series.elim ? " · " + esc(sideName(g, g.series.facing) || "a team") + " facing elimination" : ""}</div>` : ""}</div>
-      <div class="side">${logoHTML(g.home, 36)}<span class="nm">${g.home.rank ? "#" + g.home.rank + " " : ""}${esc(g.home.name)}</span><span class="note">${esc(g.home.record)}</span><button class="favbtn" type="button" data-fav="home" aria-pressed="${isFav(g, g.home)}">${isFav(g, g.home) ? "★ Following" : "☆ Follow"}</button></div>
+      <div class="side">${logoHTML(g.home, 36)}<span class="nm">${g.home.rank ? "#" + g.home.rank + " " : ""}${esc(g.home.name)}${hasBall(g, g.home) ? BALL : ""}</span><span class="note">${esc(g.home.record)}</span><button class="favbtn" type="button" data-fav="home" aria-pressed="${isFav(g, g.home)}">${isFav(g, g.home) ? "★ Following" : "☆ Follow"}</button></div>
     </div>
     <div class="big-dial" style="--z:${z.c};--v:${g.score}">
       <div class="dial"><b>${g.score}</b></div>
