@@ -411,7 +411,7 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
   </section>
 </main>
 
-<p class="build" id="build">Pulse build 2026-11-06f · filters fold away, no Best right now</p>
+<p class="build" id="build">Pulse build 2026-11-06g · ESPN opens the live stream</p>
 
 <dialog id="howDlg" aria-labelledby="howTitle">
   <div class="m-in how">
@@ -884,8 +884,18 @@ const YTTV_CHANNEL = {
   fox:     "https://tv.youtube.com/browse/UCmqqmrOV_gdhq737btJQNdQ",
   abc:     "https://tv.youtube.com/browse/UCR_vKwOOcqnoe7hmGmWydNw",
 };
-// The first network on the game that has a direct channel link; otherwise the Live guide.
-function yttvChannelFor(g){ for (const n of yttvNets(g)){ const u = YTTV_CHANNEL[n.trim().toLowerCase()]; if (u) return {net: n.trim(), url: u}; } return null; }
+/* Live-stream links (tv.youtube.com/watch/<id>) open the channel's stream directly in the iPhone app,
+   which the /browse/ channel pages above don't. Tested on Tyler's iPhone (ESPN, Nov 6 2026).
+   YouTube TV is reported to change these IDs every so often; if one stops working, copy the new
+   address from the channel's live stream at tv.youtube.com and paste it here. */
+const YTTV_WATCH = {
+  espn:    "https://tv.youtube.com/watch/bj3v-DQPnNs",
+};
+// The first network on the game that has a direct link (live stream first, then channel page); otherwise the Live guide.
+function yttvChannelFor(g){
+  for (const n of yttvNets(g)){ const k = n.trim().toLowerCase(), u = YTTV_WATCH[k] || YTTV_CHANNEL[k]; if (u) return {net: n.trim(), url: u}; }
+  return null;
+}
 const WATCH = [
   {id:"redzone", label:"NFL RedZone", color:"#C8102E", text:"#fff",  nets: g => redZoneGame(g) ? ["RedZone"] : [], url: () => YTTV_CHANNEL.redzone},
   {id:"yttv",    label:"YouTube TV",  color:"#FF0033", text:"#fff",
