@@ -323,6 +323,7 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
 .wicon{width:32px;height:32px;display:grid;place-items:center;border-radius:8px;background:var(--surface-2);border:1px solid color-mix(in srgb,var(--wc) 45%,var(--line));text-decoration:none}
 .wicon img{width:20px;height:20px;display:block;border-radius:4px}
 .wicon .wfb{color:var(--wc);font-size:13px;line-height:1}
+.wicon .wfb-t{font-family:var(--label);font-weight:800;font-size:9.5px;letter-spacing:.02em}
 .wicon:hover,.espn-mini:hover{filter:brightness(1.15)}
 .espn-mini{height:32px;display:inline-flex;align-items:center;gap:3px;padding:0 10px;border-radius:8px;background:var(--text);color:var(--ground);font-family:var(--label);font-weight:700;font-size:13px;letter-spacing:.06em;text-decoration:none;white-space:nowrap}
 .x{margin-left:auto;background:none;border:0;color:var(--muted);font-size:20px;cursor:pointer;padding:0 4px;line-height:1}
@@ -2168,7 +2169,7 @@ function fillGame(g){
         <button class="x" type="button" data-close aria-label="Close">✕</button>
         <div class="m-acts">
           ${g.state !== "post" ? watchOptions(g).map(({w, nets}) => { const lbl = (w.id === "redzone" ? "NFL RedZone" : w.label) + (w.id === "yttv" && nets.length ? " · " + nets.slice(0, 2).join(" / ") : ""); return `<a class="wicon" href="${w.url(g)}" target="_blank" rel="noopener" title="${g.state === "in" ? "Watch" : "Open"} on ${esc(lbl)}" aria-label="${g.state === "in" ? "Watch" : "Open"} on ${esc(lbl)}" style="--wc:${w.color}"><img src="https://www.google.com/s2/favicons?domain=${WATCH_ICON[w.id]}&sz=64" alt="" width="20" height="20" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'wfb',textContent:'▶'}))"></a>`; }).join("") : ""}
-          <a class="espn-mini" href="${esc(g.link)}" target="_blank" rel="noopener" aria-label="Open on ESPN">ESPN <span aria-hidden="true">↗</span></a>
+          <a class="wicon" href="${esc(g.link)}" target="_blank" rel="noopener" title="Open on ESPN" aria-label="Open on ESPN" style="--wc:#E31837"><img src="https://www.google.com/s2/favicons?domain=espn.com&sz=64" alt="" width="20" height="20" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'wfb wfb-t',textContent:'ESPN'}))"></a>
         </div>
       </div>
     </div>
