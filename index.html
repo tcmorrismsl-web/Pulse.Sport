@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Pulse Excitement Tracker</title>
 <meta name="description" content="Live 0–100 excitement ratings for every game across the major leagues.">
 <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
@@ -38,7 +38,7 @@
   --label:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
 }
 *{box-sizing:border-box}
-html,body{background:var(--ground)}
+html,body{background:var(--ground);touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{color:var(--text);font-family:var(--body);font-size:15px;line-height:1.45;margin:0;padding-inline:20px;padding-block:0 48px;-webkit-font-smoothing:antialiased}
 button{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--focus);outline-offset:2px}
@@ -2266,6 +2266,14 @@ renderChips();
 restoreSnapshot();          // show the last update instantly, then fetch fresh data
 refresh();
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
+})();
+</script>
+<script>
+/* No zooming in Pulse. iPhone Safari ignores user-scalable=no, so pinch gestures are blocked here too. */
+(() => {
+  const stop = e => e.preventDefault();
+  for (const t of ["gesturestart", "gesturechange", "gestureend"]) document.addEventListener(t, stop, {passive: false});
+  document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preventDefault(); }, {passive: false});
 })();
 </script>
 </body>
