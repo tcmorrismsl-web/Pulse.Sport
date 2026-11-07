@@ -288,6 +288,15 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
 .m-head{display:flex;align-items:flex-start;gap:12px}
 .m-head h2{font-family:var(--display);font-weight:800;font-size:28px;line-height:1.05;text-transform:uppercase;margin:0;text-wrap:balance}
 .m-head .sub{color:var(--muted);font-size:14px;margin-top:4px}
+.m-head > div:first-child{flex:1;min-width:0}
+.m-side{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex:none}
+.m-side .x{margin-left:0}
+.m-acts{display:flex;align-items:center;gap:6px}
+.wicon{width:32px;height:32px;display:grid;place-items:center;border-radius:8px;background:var(--surface-2);border:1px solid color-mix(in srgb,var(--wc) 45%,var(--line));text-decoration:none}
+.wicon img{width:20px;height:20px;display:block;border-radius:4px}
+.wicon .wfb{color:var(--wc);font-size:13px;line-height:1}
+.wicon:hover,.espn-mini:hover{filter:brightness(1.15)}
+.espn-mini{height:32px;display:inline-flex;align-items:center;gap:3px;padding:0 10px;border-radius:8px;background:var(--text);color:var(--ground);font-family:var(--label);font-weight:700;font-size:13px;letter-spacing:.06em;text-decoration:none;white-space:nowrap}
 .x{margin-left:auto;background:none;border:0;color:var(--muted);font-size:20px;cursor:pointer;padding:0 4px;line-height:1}
 .x:hover{color:var(--text)}
 .how h4{font-family:var(--label);text-transform:uppercase;letter-spacing:.14em;font-size:13px;color:var(--muted);margin:10px 0 4px}
@@ -923,6 +932,8 @@ const WATCH = [
   {id:"netflix", label:"Netflix",     color:"#E50914", text:"#fff",    nets: g => netsMatching(g, /netflix/i),            url: () => "https://www.netflix.com/"},
   {id:"peacock", label:"Peacock",     color:"#F2F2F2", text:"#0A0D12", nets: g => netsMatching(g, /peacock/i),            url: () => "https://www.peacocktv.com/"},
 ];
+/* Small header icons in the game pop-up use each service's own site icon (fallback: ▶ in the service color). */
+const WATCH_ICON = {redzone:"nfl.com", yttv:"tv.youtube.com", prime:"primevideo.com", netflix:"netflix.com", peacock:"peacocktv.com"};
 function netsMatching(g, re){ return (g.broadcast || "").split(/\s*,\s*/).filter(n => re.test(n)); }
 function watchOptions(g){ return WATCH.map(w => ({w, nets: w.nets(g)})).filter(x => x.nets.length); }
 
@@ -2095,7 +2106,13 @@ function fillGame(g){
     <div class="m-head">
       <div><h2 id="gTitle">${esc(g.away.name)} at ${esc(g.home.name)}</h2>
       <div class="sub">${esc(L.label)} · ${esc(statusText(g))}${g.note ? " · " + esc(g.note) : ""}</div></div>
-      <button class="x" type="button" data-close aria-label="Close">✕</button>
+      <div class="m-side">
+        <button class="x" type="button" data-close aria-label="Close">✕</button>
+        <div class="m-acts">
+          ${g.state !== "post" ? watchOptions(g).map(({w, nets}) => { const lbl = (w.id === "redzone" ? "NFL RedZone" : w.label) + (w.id === "yttv" && nets.length ? " · " + nets.slice(0, 2).join(" / ") : ""); return `<a class="wicon" href="${w.url(g)}" target="_blank" rel="noopener" title="${g.state === "in" ? "Watch" : "Open"} on ${esc(lbl)}" aria-label="${g.state === "in" ? "Watch" : "Open"} on ${esc(lbl)}" style="--wc:${w.color}"><img src="https://www.google.com/s2/favicons?domain=${WATCH_ICON[w.id]}&sz=64" alt="" width="20" height="20" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'wfb',textContent:'▶'}))"></a>`; }).join("") : ""}
+          <a class="espn-mini" href="${esc(g.link)}" target="_blank" rel="noopener" aria-label="Open on ESPN">ESPN <span aria-hidden="true">↗</span></a>
+        </div>
+      </div>
     </div>
     <div class="score-line">
       <div class="side">${logoHTML(g.away, 36)}<span class="nm">${g.away.rank ? "#" + g.away.rank + " " : ""}${esc(g.away.name)}</span><span class="note">${esc(g.away.record)}</span><button class="favbtn" type="button" data-fav="away" aria-pressed="${isFav(g, g.away)}">${isFav(g, g.away) ? "★ Following" : "☆ Follow"}</button></div>
@@ -2115,8 +2132,6 @@ function fillGame(g){
     ${g.odds && g.odds.text ? `<div class="note" style="margin-top:6px">Line: ${esc(g.odds.text)}</div>` : ""}</div>
     ${g.venue || g.broadcast ? `<div class="note">${esc([g.venue, g.broadcast].filter(Boolean).join(" · "))}</div>` : ""}
     <div class="m-foot">
-      ${g.state !== "post" ? watchOptions(g).map(({w, nets}) => `<a class="btn watch" style="background:${w.color};border-color:${w.color};color:${w.text}" href="${w.url(g)}" target="_blank" rel="noopener" title="Opens the ${esc(w.label)} app"><span aria-hidden="true">▶</span>${w.id === "redzone" ? (g.state === "in" ? "Watch NFL RedZone" : "Open NFL RedZone") : (g.state === "in" ? "Watch" : "Open") + " on " + esc(w.label)}${w.id === "yttv" ? " · " + esc(nets.slice(0, 2).join(" / ")) : ""}</a>`).join("") : ""}
-      <a class="btn primary" href="${esc(g.link)}" target="_blank" rel="noopener">Open on ESPN ↗</a>
       <button class="btn" type="button" data-close>Close</button>
     </div>`;
   requestAnimationFrame(() => drawGame(g));
