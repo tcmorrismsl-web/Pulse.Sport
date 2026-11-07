@@ -69,6 +69,15 @@ header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background
 .leagues{margin-top:20px;display:grid;gap:10px}
 .row-head{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .eyebrow{font-family:var(--label);text-transform:uppercase;letter-spacing:.14em;font-size:12px;color:var(--muted);font-weight:600;margin:0}
+.ftog{display:inline-flex;align-items:center;gap:10px;background:none;border:0;padding:2px 0;cursor:pointer;color:var(--muted);font-family:var(--body)}
+.ftog:hover .eyebrow,.ftog:hover{color:var(--text)}
+.ftog svg{transition:transform .15s}
+.ftog[aria-expanded="true"] svg{transform:rotate(180deg)}
+.fsum{font-size:12.5px;color:#5A606B}
+.facts{display:inline-flex;gap:14px}
+.facts[hidden]{display:none}
+.fbody{display:grid;gap:10px}
+.fbody[hidden]{display:none}
 .link{background:none;border:0;padding:2px 0;color:var(--muted);font-size:13px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--line)}
 .link:hover{color:var(--text)}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
@@ -125,15 +134,6 @@ header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background
 #alertBtn[aria-pressed="false"]{color:#5A606B}
 #spoilBtn[aria-pressed="true"] .hl::after{content:" hidden"}
 
-/* Best right now: the standard game tile with a small label */
-.best{margin-top:16px}
-.best-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 2px 6px}
-.best-lbl{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--zc)}
-.best-lbl i{width:6px;height:6px;border-radius:50%;background:var(--must);animation:beat 1.6s infinite}
-.best-watch{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;text-decoration:none;color:#fff;background:var(--wc);border-radius:6px;padding:4px 9px;white-space:nowrap}
-.best-watch:hover{filter:brightness(.92)}
-.best-tile{max-width:560px}
-.best-tile .gc{border-color:color-mix(in srgb,var(--zc) 40%,#262A35)}
 
 /* Alert toasts */
 .toasts{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 10px);z-index:50;display:grid;gap:8px;width:min(440px,calc(100vw - 24px));pointer-events:none}
@@ -356,19 +356,20 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
 <main class="wrap">
   <div class="leagues">
     <div class="row-head">
-      <p class="eyebrow">Leagues</p>
-      <button class="link" id="selAll" type="button">Select all</button>
-      <button class="link" id="selNone" type="button">Clear</button>
+      <button class="ftog" id="fTog" type="button" aria-expanded="false" aria-controls="fBody"><span class="eyebrow">Filters</span><span class="fsum" id="fSum"></span><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.5 5 6.5 8 3.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <span class="facts" id="fActs" hidden><button class="link" id="selAll" type="button">Select all</button>
+      <button class="link" id="selNone" type="button">Clear</button></span>
     </div>
+    <div class="fbody" id="fBody" hidden>
     <div class="chips"><button class="chip live-chip" id="liveOnly" type="button" aria-pressed="false"><span class="ld"></span>Live<span class="n" id="liveN"></span></button><button class="chip ups-chip" id="upsetOnly" type="button" aria-pressed="false">Upsets<span class="n" id="upsetN"></span></button><span class="chip-sep" aria-hidden="true"></span><div class="chips" id="chips" style="display:contents"></div></div>
     <div class="subf" id="subf" hidden></div>
+    </div>
   </div>
 
   <div class="banner" id="sampleBanner" hidden><b>Sample games.</b> ESPN's scoreboards can't be reached from here, so these made-up games show how Pulse rates them. Hosted on its own site (Netlify, for example), Pulse shows live scores.</div>
 
   <div id="loading" class="loading">Loading scoreboards…</div>
 
-  <section class="block best" id="bestSec" hidden aria-label="Best game right now"></section>
 
   <section class="block" id="favSec" hidden>
     <div class="sec-head"><h2 class="sec-title"><button class="tog" type="button" data-tog="favs" aria-expanded="true"><span class="chev" aria-hidden="true"></span><span class="favstar" aria-hidden="true">★</span> My teams</button></h2><span class="count" id="favCount"></span>
@@ -410,7 +411,7 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
   </section>
 </main>
 
-<p class="build" id="build">Pulse build 2026-11-06e · faster loading</p>
+<p class="build" id="build">Pulse build 2026-11-06f · filters fold away, no Best right now</p>
 
 <dialog id="howDlg" aria-labelledby="howTitle">
   <div class="m-in how">
@@ -1581,6 +1582,19 @@ function renderSubf(){
       <button type="button" data-p4="${id}" data-v="1" aria-pressed="${!!p4Only[id]}">Power 4 ${n4}</button></span>`;
   }).join("");
 }
+/* Filters fold away by default; the summary says what's on so nothing is hidden by surprise. */
+let filtersOpen = !!store.get("pulse.filtersOpen", false);
+function renderFilterSum(){
+  const on = CHIPS.filter(l => selected.has(l.id)).map(l => l.label);
+  const parts = [on.length === CHIPS.length ? "All leagues" : !on.length ? "No leagues" : on.length <= 3 ? on.join(", ") : on.slice(0, 2).join(", ") + " +" + (on.length - 2)];
+  if (liveOnly) parts.push("Live only");
+  if (upsetOnly) parts.push("Upsets");
+  if ((p4Only.ncaaf && selected.has("ncaaf")) || (p4Only.ncaam && selected.has("ncaam"))) parts.push("Power 4");
+  $("#fSum").textContent = parts.join(" · ");
+  $("#fTog").setAttribute("aria-expanded", filtersOpen);
+  $("#fBody").hidden = !filtersOpen;
+  $("#fActs").hidden = !filtersOpen;
+}
 function chipState(id){
   const kids = LEAGUES.filter(l => l.id === id || l.parent === id).map(l => leagueState[l.id]).filter(Boolean);
   if (!kids.length) return null;
@@ -1604,16 +1618,6 @@ function scoreLine(g){
   const a = g.away, h = g.home, ab = t => esc(t.abbr || t.name);
   const lead = a.score > h.score ? "a" : h.score > a.score ? "h" : "";
   return `${lead === "a" ? "<b>" : ""}${ab(a)} ${a.score}${lead === "a" ? "</b>" : ""} · ${lead === "h" ? "<b>" : ""}${ab(h)} ${h.score}${lead === "h" ? "</b>" : ""}`;
-}
-/* Best right now: the hottest live game (from your selected leagues) with a one-tap Watch. */
-function renderBest(live){
-  const g = live[0], sec = $("#bestSec");
-  if (!g || g.score < 40){ sec.hidden = true; sec.innerHTML = ""; return; }
-  sec.hidden = false;
-  const w = watchOptions(g)[0];
-  // Same tile as the live cards below the chart, with a small label and a compact Watch link.
-  sec.innerHTML = `<div class="best-head" style="--zc:${colorAt(g.score)}"><span class="best-lbl"><i aria-hidden="true"></i>Best right now</span>${w ? `<a class="best-watch" style="--wc:${w.w.color}" href="${w.w.url(g)}" target="_blank" rel="noopener">▶ Watch${w.w.id === "yttv" ? " · " + esc(w.nets[0]) : " on " + esc(w.w.label)}</a>` : ""}</div>
-    <div class="best-tile">${card(g)}</div>`;
 }
 function renderFavs(){
   const keys = Object.keys(favs);
@@ -1697,6 +1701,7 @@ function render(){
   const p4ok = g => !p4Only[g.lg] || isP4Game(g);
   const vis = inLeagues.filter(g => p4ok(g) && (!upsetOnly || isUpset(g)));
   renderSubf();
+  renderFilterSum();
   const live = vis.filter(g => g.state === "in").sort((a, b) => b.score - a.score);
   const up = vis.filter(g => g.state === "pre").sort((a, b) => (new Date(a.date) - new Date(b.date)) || (b.score - a.score));
   const finAll = vis.filter(g => g.state === "post").sort((a, b) => b.score - a.score);
@@ -1720,7 +1725,6 @@ function render(){
   $("#liveEmpty").textContent = (!selected.size ? "Pick a league above to see games." : upsetOnly ? "No live upsets right now." : "No live games in your leagues right now.") + (finAll.length || upList.length || todayList.length ? (liveOnly ? " Turn off the Live filter to see upcoming and finished games." : " Finished and upcoming games are below.") : "");
   $("#liveCount").textContent = live.length ? live.length + " game" + (live.length > 1 ? "s" : "") + " live" : "";
   liveList = live;
-  renderBest(live);
   renderFavs();
   drawLive();
 
@@ -2212,6 +2216,7 @@ $("#alertBtn").addEventListener("click", () => { alertsOn = !alertsOn; store.set
 function syncHeader(){ $("#spoilBtn").setAttribute("aria-pressed", spoil); $("#alertBtn").setAttribute("aria-pressed", alertsOn); }
 syncHeader();
 $("#liveOnly").addEventListener("click", () => { liveOnly = !liveOnly; store.set("pulse.liveOnly", liveOnly); render(); });
+$("#fTog").addEventListener("click", () => { filtersOpen = !filtersOpen; store.set("pulse.filtersOpen", filtersOpen); renderFilterSum(); });
 $("#selAll").addEventListener("click", () => { selected = new Set(LEAGUES.map(l => l.id)); store.set("pulse.leagues", [...selected]); render(); });
 $("#selNone").addEventListener("click", () => { selected = new Set(); store.set("pulse.leagues", []); render(); });
 $("#refreshBtn").addEventListener("click", refresh);
