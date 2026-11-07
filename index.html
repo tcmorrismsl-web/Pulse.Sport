@@ -410,7 +410,7 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
   </section>
 </main>
 
-<p class="build" id="build">Pulse build 2026-11-06d · compact Best right now</p>
+<p class="build" id="build">Pulse build 2026-11-06e · faster loading</p>
 
 <dialog id="howDlg" aria-labelledby="howTitle">
   <div class="m-in how">
@@ -1191,16 +1191,19 @@ function timeCurve(g){
 function ymd(d){ return d.getFullYear() + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0"); }
 const dayCache = {};   // "league:yyyymmdd" -> {ts, events}
 async function getJSON(url){
-  const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 12000);
+  const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 9000);
   try { const r = await fetch(url, {signal: ctl.signal}); if (!r.ok) throw new Error("HTTP " + r.status); return await r.json(); }
   finally { clearTimeout(to); }
 }
-async function soccerEvents(L){
+async function soccerEvents(L, quick){
   const base = "https://site.api.espn.com/apis/site/v2/sports/" + L.path + "/scoreboard";
   const today = ymd(new Date());
   const days = Array.from({length: 8}, (_, i) => ymd(new Date(Date.now() + (i - 1) * 864e5)));
   const out = await Promise.allSettled(days.map(async d => {
     const key = L.id + ":" + d, c = dayCache[key];
+    // Quick pass (first paint): only today's matches go to the network; other days use what's cached.
+    if (quick && d !== today){ if (c) return c.events; throw new Error("not fetched yet"); }
+    if (d === today && c && Date.now() - c.ts < 20e3) return c.events;   // just fetched in the quick pass
     const hot = c && c.events.some(ev => {
       const st = (ev.competitions && ev.competitions[0] && ev.competitions[0].status && ev.competitions[0].status.type && ev.competitions[0].status.type.state) || "";
       const t = Date.parse(ev.date);
@@ -1222,22 +1225,20 @@ let eplTeams = new Set(store.get("pulse.eplTeams", {ids:[]}).ids);
 async function ensureEplTeams(){
   const saved = store.get("pulse.eplTeams", {ids:[], ts:0});
   if (saved.ids.length && Date.now() - saved.ts < 864e5) return;
-  try {
-    const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 8000);
-    const r = await fetch("https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/teams", {signal: ctl.signal});
-    clearTimeout(to);
-    if (!r.ok) return;
-    const j = await r.json();
-    const ids = ((j.sports || [])[0]?.leagues?.[0]?.teams || []).map(t => String(t.team && t.team.id)).filter(Boolean);
-    if (ids.length >= 18){ eplTeams = new Set(ids); store.set("pulse.eplTeams", {ids, ts: Date.now()}); }
-  } catch {}
+  for (const u of ["teams/epl.json", "https://raw.githubusercontent.com/tcmorrismsl-web/Pulse.Sport/main/teams/epl.json"]){
+    try {
+      const j = await getJSON(u);
+      const ids = (j.teams || []).map(t => String(t.id)).filter(Boolean);
+      if (ids.length >= 18){ eplTeams = new Set([...eplTeams, ...ids]); store.set("pulse.eplTeams", {ids, ts: Date.now()}); return; }
+    } catch {}
+  }
 }
 
-async function fetchLeague(L){
-  if (L.kind === "soccer") return finishLeague(L, await soccerEvents(L));
+async function fetchLeague(L, quick){
+  if (L.kind === "soccer") return finishLeague(L, await soccerEvents(L, quick));
   const url = "https://site.api.espn.com/apis/site/v2/sports/" + L.path + "/scoreboard" + (L.q ? "?" + L.q : "");
   const ctl = new AbortController();
-  const to = setTimeout(() => ctl.abort(), 12000);
+  const to = setTimeout(() => ctl.abort(), 9000);
   try {
     const r = await fetch(url, {signal: ctl.signal});
     if (!r.ok) throw new Error("HTTP " + r.status);
@@ -1249,8 +1250,12 @@ async function fetchLeague(L){
    (finished games don't change). Only fetched while the Final dropdown is on This week. */
 async function pastWeekFinals(){
   const days = Array.from({length: 6}, (_, i) => ymd(new Date(Date.now() - (i + 1) * 864e5)));
+  const want = LEAGUES.filter(watched).map(l => l.id);
+  const saved = store.get("pulse.week", null);
+  if (saved && saved.day === days[0] && Date.now() - saved.at < 3600e3 && want.every(id => saved.leagues.includes(id)))
+    return saved.games.filter(g => want.includes(g.lg));
   const jobs = [];
-  for (const L of LEAGUES) for (const d of days) jobs.push((async () => {
+  for (const L of LEAGUES.filter(watched)) for (const d of days) jobs.push((async () => {
     const key = L.id + ":" + d, c = dayCache[key];
     let events;
     if (c && Date.now() - c.ts < 3600e3) events = c.events;
@@ -1262,7 +1267,12 @@ async function pastWeekFinals(){
     return finishLeague(L, events).filter(g => g.state === "post");
   })());
   const out = await Promise.allSettled(jobs);
-  return out.flatMap(r => r.status === "fulfilled" ? r.value : []);
+  const list = out.flatMap(r => r.status === "fulfilled" ? r.value : []);
+  try {
+    const slim = list.map(g => { const o = {...g}; for (const k of DERIVED) delete o[k]; return o; });
+    localStorage.setItem("pulse.week", JSON.stringify({at: Date.now(), day: days[0], leagues: want, games: slim}));
+  } catch {}
+  return list;
 }
 function finishLeague(L, events){
   let list = events.map(ev => parseEvent(ev, L)).filter(Boolean);
@@ -1296,22 +1306,31 @@ async function doRefresh(){
   const lastOk = conn.at;          // time of the last good update
   const ids = LEAGUES.map(l => l.id);
   const prevBy = id => games.filter(g => g.lg === id && !usingSample);
-  const fetchOrReuse = L => (!watched(L) && lastFetch[L.id] && Date.now() - lastFetch[L.id] < 300e3 && L.id !== "epl")
+  const due = L => watched(L) || !lastFetch[L.id] || Date.now() - lastFetch[L.id] >= 300e3;
+  const fetched = new Set();
+  const fetchOrReuse = L => !due(L)
     ? Promise.resolve(prevBy(L.id))
-    : fetchLeague(L).then(v => { lastFetch[L.id] = Date.now(); return v; });
+    : (fetched.add(L.id), fetchLeague(L, true).then(v => { lastFetch[L.id] = Date.now(); return v; }));
+  // Every league in parallel (the Premier League club list comes from the saved team file).
   await ensureEplTeams();
-  // Premier League first, so its clubs are known before the cup feeds are filtered.
-  const eplRes = await Promise.allSettled([fetchOrReuse(LG.epl)]);
-  const rest = await Promise.allSettled(LEAGUES.filter(l => l.id !== "epl").map(fetchOrReuse));
-  const byId = {epl: eplRes[0]};
-  LEAGUES.filter(l => l.id !== "epl").forEach((l, i) => byId[l.id] = rest[i]);
-  const results = ids.map(id => byId[id]);
+  const pending = LEAGUES.map(fetchOrReuse);
+  // If a slow feed (usually college basketball/football) is still loading after ~1.2 s, show what's
+  // already here (plus last-known games for the rest) without recording it, then finish normally.
+  const settledSoFar = {};
+  pending.forEach((pr, i) => pr.then(v => { settledSoFar[LEAGUES[i].id] = v; }, () => {}));
+  const all = Promise.allSettled(pending);
+  const early = await Promise.race([all.then(() => false), new Promise(r => setTimeout(() => r(true), 1200))]);
+  if (early && Object.keys(settledSoFar).length){
+    const partial = LEAGUES.flatMap(L => settledSoFar[L.id] || prevBy(L.id));
+    if (partial.length){ ingest(partial, true); setConn("", "Loading", conn.at, "more leagues on the way"); }
+  }
+  const results = await all;
   const next = [];
   let okCount = 0;
   leagueState = {};
   results.forEach((r, i) => {
     const id = ids[i];
-    if (r.status === "fulfilled"){ okCount++; next.push(...r.value); leagueState[id] = {ok:true, n:r.value.length, live:r.value.filter(g => g.state === "in").length}; }
+    if (r.status === "fulfilled"){ if (fetched.has(id)) okCount++; next.push(...r.value); leagueState[id] = {ok:true, n:r.value.length, live:r.value.filter(g => g.state === "in").length}; }
     else {
       // Keep this league's last-known games so cards and chart lines don't blink out on a bad connection.
       const keep = prevBy(id);
@@ -1320,6 +1339,7 @@ async function doRefresh(){
     }
   });
 
+  if (okCount === 0 && fetched.size === 0 && games.length){ render(); return; }   // nothing was due this cycle
   if (okCount === 0 && hadReal){
     // Connection dropped after real data loaded: keep showing the last real games and retry.
     setConn("warn", "Offline", lastOk, "retrying", true);
@@ -1338,17 +1358,35 @@ async function doRefresh(){
   } else {
     usingSample = false;
     hadReal = true;
-    if (finRange === "week"){
-      const seen = new Set(next.map(g => g.id));
-      for (const g of await pastWeekFinals()) if (!seen.has(g.id)){ seen.add(g.id); next.push(g); }
-    }
-    ingest(next);
+    ingest(next);                     // first paint: today's games are on screen now
     const anyLive = next.some(g => g.state === "in");
     const failed = CHIPS.filter(l => !leagueState[l.id].ok && !leagueState[l.id].stale).length;
     setConn(anyLive ? "live" : "ok", anyLive ? "Live" : "Connected", Date.now(), failed ? failed + " league" + (failed > 1 ? "s" : "") + " unavailable" : "");
     saveSnapshot(next);
+    await fillIn(next, results);
   }
   $("#sampleBanner").hidden = !usingSample;
+}
+
+/* Second pass, after the first paint: the rest of the week's soccer fixtures and, if Final is on
+   This week, the past six days of finals. Re-renders once when it's done. */
+async function fillIn(next, results){
+  const soccer = LEAGUES.filter(L => L.kind === "soccer" && (watched(L) || L.id === "epl" || L.parent === "epl"));
+  const needWeek = finRange === "week";
+  if (!soccer.length && !needWeek) return;
+  const [full, week] = await Promise.all([
+    Promise.allSettled(soccer.map(L => fetchLeague(L))),
+    needWeek ? pastWeekFinals().catch(() => []) : Promise.resolve([]),
+  ]);
+  const replaced = new Set();
+  let merged = next.slice();
+  soccer.forEach((L, i) => { if (full[i].status === "fulfilled"){ replaced.add(L.id); merged = merged.filter(g => g.lg !== L.id).concat(full[i].value); } });
+  const seen = new Set(merged.map(g => g.id));
+  for (const g of week) if (!seen.has(g.id)){ seen.add(g.id); merged.push(g); }
+  if (merged.length === next.length && !week.length && !replaced.size) return;
+  for (const L of soccer) if (replaced.has(L.id)){ const v = merged.filter(g => g.lg === L.id); leagueState[L.id] = {ok:true, n:v.length, live:v.filter(g => g.state === "in").length}; }
+  ingest(merged);
+  saveSnapshot(merged.filter(g => !week.includes(g)));
 }
 
 function ingest(list, restore){

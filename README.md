@@ -8,7 +8,7 @@ The whole app is one file, `index.html`. It pulls live scoreboards from ESPN's p
 
 NFL, NCAAF, MLB, NBA, WNBA, NCAAM, NHL, MLS, Premier League, Champions League.
 
-The Premier League button also includes FA Cup, Carabao Cup, Europa League and Conference League games that involve a Premier League club. Soccer feeds are requested one day at a time for yesterday through the next six days (ESPN's soccer feeds return a single day and reject date ranges). Today's matches refresh every update; other days every ten minutes.
+The Premier League button also includes FA Cup, Carabao Cup, Europa League and Conference League games that involve a Premier League club. Soccer feeds are requested one day at a time for yesterday through the next six days (ESPN's soccer feeds return a single day and reject date ranges). On open, Pulse loads only today's soccer matches first; the other days fill in right after the first screen appears. Today's matches refresh every update; other days every ten minutes.
 
 ## Hosting on GitHub Pages
 
@@ -73,6 +73,7 @@ Games on a network YouTube TV carries (ABC, CBS, NBC, FOX, the ESPN networks, SE
 ## Updates and connection
 
 - Refresh is every 20 seconds while a game you're watching is live, otherwise every 5 minutes. Leagues whose button is off (and with none of your teams) only refresh every 5 minutes. Updates pause while the app is in the background and resume when you return.
+- On open, all leagues load at the same time. Pulse shows whatever has arrived after about a second and fills in the slower leagues (usually college feeds) as they come in. "This week" finals are saved on the phone for an hour, so they aren't downloaded again every time the app opens.
 - The header shows how long ago data updated; it turns amber when the data is stale.
 - Pulse saves the last update on the phone, so it opens instantly with the latest scores (even with no signal) and then refreshes. `sw.js` keeps the app itself on the phone for instant launch.
 - If one league fails to load, its last-known games stay on screen. If the connection drops completely, Pulse keeps the last update on screen ("Offline · retrying") and retries every 30 seconds. Sample games appear only if real data has never loaded.
