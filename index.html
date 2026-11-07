@@ -106,6 +106,33 @@ header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background
 .favchip button{background:none;border:0;color:#8A7A55;font-size:13px;line-height:1;cursor:pointer;padding:0 2px}
 .favchip button:hover{color:#F5C451}
 .fav-empty{color:var(--muted);font-size:13px;margin:0 0 6px}
+/* My teams: a compact row under Filters, scores only */
+.favrow{margin-top:12px;padding-top:12px;border-top:1px solid #1C2128;display:grid;gap:10px}
+.favrow[hidden]{display:none}
+.favrow .favstar{margin-right:6px;letter-spacing:0}
+.favrow .row-head{gap:14px}
+.favrow .link[hidden]{display:none}
+.fscores{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:6px}
+.fscores[hidden]{display:none}
+.fsr{display:grid;grid-template-columns:3px minmax(0,1fr) 86px 38px;align-items:center;column-gap:10px;width:100%;background:#13181E;border:1px solid #20252D;border-radius:10px;padding:7px 10px 7px 8px;color:#F4F7FD;font-family:var(--body);text-align:left;cursor:pointer}
+.fsr:hover{border-color:#343A44}
+.fsr .lb{align-self:stretch;border-radius:2px;background:var(--lc)}
+.fsr .tms{display:grid;gap:3px;min-width:0}
+.fsr .t{display:grid;grid-template-columns:16px minmax(0,1fr) auto;gap:7px;align-items:center;font-size:13.5px;font-weight:500;line-height:18px}
+.fsr .t img,.fsr .t .ph{width:16px;height:16px;object-fit:contain;border-radius:50%}
+.fsr .t .ph{background:#232932}
+.fsr .t .n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fsr .t .n .fv{color:#F5C451;font-size:10px;margin-left:4px;vertical-align:1px}
+.fsr .t .s{font-variant-numeric:tabular-nums;font-weight:700;min-width:2ch;text-align:right}
+.fsr .t.lose{color:#88909A}
+.fsr .t.lose .s{font-weight:500}
+.fsr .st{font-size:11.5px;color:#88909A;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fsr .st.live{color:#F08A90;font-weight:600}
+.fsr .ex{font-family:var(--display);font-weight:800;font-size:22px;line-height:1;text-align:right;color:var(--zc);font-variant-numeric:tabular-nums}
+.td-mine-wrap{display:grid;gap:8px}
+.td-mine{display:flex;flex-wrap:wrap;gap:6px}
+.td-mine .fav-empty{margin:0}
+.td-addh{margin:4px 0 -4px}
 .gc.isfav{border-color:#4A3F22;box-shadow:inset 0 0 0 1px rgba(245,196,81,.08)}
 .gc .tm .fv{color:#F5C451;font-size:11px;margin-left:5px;vertical-align:1px}
 .favbtn{margin-top:4px;background:transparent;border:1px solid #2C313A;border-radius:999px;color:#88909A;font-family:var(--body);font-size:11px;font-weight:600;padding:3px 10px;cursor:pointer;white-space:nowrap}
@@ -161,6 +188,7 @@ header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background
   .favchip{padding:4px 4px 4px 11px;font-size:12.5px}
   .favchip button{min-width:32px;min-height:32px;font-size:16px}
   .addteams,.range{min-height:38px}
+  .fsr{min-height:52px}
   .link{padding:9px 4px}
   .tog{min-height:36px}
   .more{min-height:40px;padding:9px 16px}
@@ -392,17 +420,19 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
     </div>
   </div>
 
+  <section class="favrow" id="favSec" hidden aria-label="My teams">
+    <div class="row-head">
+      <button class="ftog" type="button" data-tog="favs" aria-expanded="true" aria-controls="favGrid"><span class="eyebrow"><span class="favstar" aria-hidden="true">★</span>My teams</span><span class="fsum" id="favCount"></span><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.5 5 6.5 8 3.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button class="link" id="addTeams" type="button">Edit</button>
+    </div>
+    <div class="fscores" id="favGrid"></div>
+  </section>
+
   <div class="banner" id="sampleBanner" hidden><b>Sample games.</b> ESPN's scoreboards can't be reached from here, so these made-up games show how Pulse rates them. Hosted on its own site (Netlify, for example), Pulse shows live scores.</div>
 
   <div id="loading" class="loading">Loading scoreboards…</div>
 
 
-  <section class="block" id="favSec" hidden>
-    <div class="sec-head"><h2 class="sec-title"><button class="tog" type="button" data-tog="favs" aria-expanded="true"><span class="chev" aria-hidden="true"></span><span class="favstar" aria-hidden="true">★</span> My teams</button></h2><span class="count" id="favCount"></span>
-      <button class="addteams" id="addTeams" type="button">+ Add teams</button></div>
-    <div class="favlist" id="favList"></div>
-    <div class="grid cards" id="favGrid"></div>
-  </section>
 
   <section class="block" id="liveSec" hidden>
     <div class="lc-card">
@@ -481,8 +511,10 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
 
 <dialog id="teamDlg" aria-labelledby="tdTitle">
   <div class="m-in td">
-    <div class="m-head"><div><h2 id="tdTitle">Add teams</h2><div class="sub">Star a team to follow it. Its games show up in My teams.</div></div>
+    <div class="m-head"><div><h2 id="tdTitle">Edit my teams</h2><div class="sub">Tap × to remove a team. To add one, pick a league below and tap its ☆.</div></div>
       <button class="x" type="button" data-close aria-label="Close">✕</button></div>
+    <div class="td-mine-wrap"><p class="eyebrow" id="tdMineHead">Following</p><div class="td-mine" id="tdMine"></div></div>
+    <p class="eyebrow td-addh">Add teams</p>
     <div class="td-lgs" id="tdLeagues" role="tablist" aria-label="League"></div>
     <input class="td-search" id="tdSearch" type="search" placeholder="Search teams" autocomplete="off" aria-label="Search teams">
     <div class="td-list" id="tdList"></div>
@@ -1658,12 +1690,33 @@ function scoreLine(g){
   const lead = a.score > h.score ? "a" : h.score > a.score ? "h" : "";
   return `${lead === "a" ? "<b>" : ""}${ab(a)} ${a.score}${lead === "a" ? "</b>" : ""} · ${lead === "h" ? "<b>" : ""}${ab(h)} ${h.score}${lead === "h" ? "</b>" : ""}`;
 }
+function favStatus(g){
+  if (g.state !== "pre") return statusText(g);
+  const d = new Date(g.date); if (isNaN(d)) return g.detail;
+  const time = g.tbd ? "TBD" : d.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});
+  return d.toDateString() === new Date().toDateString() ? time : d.toLocaleDateString([], {weekday:"short"}) + " " + time;
+}
+function favRow(g){
+  const showScore = g.state !== "pre" && !spoil;
+  const side = (t, o) => `<span class="t${g.state === "post" && !spoil && t.score < o.score ? " lose" : ""}">${logoHTML(t, 16)}<span class="n">${esc(t.abbr || t.name)}${isFav(g, t) ? '<span class="fv" aria-hidden="true">★</span>' : ""}</span><span class="s">${showScore ? t.score : ""}</span></span>`;
+  const L = LG[g.lg];
+  return `<button class="fsr" type="button" data-open="${esc(g.id)}" style="--lc:${lgColor(g.lg)};--zc:${colorAt(g.score)}" aria-label="${esc(L.label)}: ${esc(g.away.name)}${showScore ? " " + g.away.score : ""} at ${esc(g.home.name)}${showScore ? " " + g.home.score : ""}, ${esc(statusText(g))}, excitement ${g.score}">
+    <span class="lb" aria-hidden="true"></span>
+    <span class="tms">${side(g.away, g.home)}${side(g.home, g.away)}</span>
+    <span class="st${g.state === "in" ? " live" : ""}"${crunchLevel(g) ? ` style="color:${CRUNCH[crunchLevel(g)]}"` : ""}>${esc(favStatus(g))}</span>
+    <span class="ex" title="Excitement">${g.score}</span>
+  </button>`;
+}
 function renderFavs(){
   const keys = Object.keys(favs);
   $("#favSec").hidden = false;
+  const open = isOpen("favs", true);
+  const tog = $('[data-tog="favs"]');
   if (!keys.length){
     $("#favCount").textContent = "none yet";
-    $("#favList").innerHTML = ""; $("#favGrid").innerHTML = "";
+    tog.setAttribute("aria-expanded", "false");
+    $("#addTeams").textContent = "+ Add teams"; $("#addTeams").hidden = false;
+    $("#favGrid").hidden = true; $("#favGrid").innerHTML = "";
     return;
   }
   const mine = games.filter(isFavGame);
@@ -1671,17 +1724,22 @@ function renderFavs(){
   const today = new Date().toDateString();
   const list = [
     ...mine.filter(g => g.state === "in").sort((a, b) => b.score - a.score),
-    ...mine.filter(g => g.state === "pre" && t(g) <= Date.now() + 7 * 864e5).sort((a, b) => t(a) - t(b)),
     ...mine.filter(g => g.state === "post" && new Date(g.date).toDateString() === today).sort((a, b) => b.score - a.score),
+    ...mine.filter(g => g.state === "pre" && t(g) <= Date.now() + 7 * 864e5).sort((a, b) => t(a) - t(b)),
   ];
-  const open = isOpen("favs", true);
-  $('[data-tog="favs"]').setAttribute("aria-expanded", open);
-  $("#favCount").textContent = keys.length + " team" + (keys.length > 1 ? "s" : "") + (list.length ? " · " + list.length + " game" + (list.length > 1 ? "s" : "") : "");
-  $("#favList").hidden = $("#favGrid").hidden = !open;
-  $("#favList").innerHTML = open ? keys.map(k => { const f = favs[k];
-    return `<span class="favchip" style="border-color:color-mix(in srgb,${lgColor(f.lg)} 30%,#3A3220)">${f.logo ? `<img src="${esc(f.logo)}" alt="">` : ""}${esc(f.name)}<button type="button" data-unfav="${esc(k)}" aria-label="Stop following ${esc(f.name)}">×</button></span>`; }).join("") +
-    (list.length ? "" : `<p class="fav-empty" style="flex-basis:100%">No games for your teams in the next 7 days.</p>`) : "";
-  $("#favGrid").innerHTML = open ? capped(list, "favs") : "";
+  tog.setAttribute("aria-expanded", open);
+  $("#favCount").textContent = keys.length + " team" + (keys.length > 1 ? "s" : "") + " · " + (list.length ? list.length + " game" + (list.length > 1 ? "s" : "") : "no games");
+  $("#addTeams").textContent = "Edit"; $("#addTeams").hidden = !open;
+  $("#favGrid").hidden = !open;
+  $("#favGrid").innerHTML = !open ? "" : list.length ? list.map(favRow).join("") : `<p class="fav-empty">No games for your teams in the next 7 days.</p>`;
+}
+/* Edit my teams: the followed list, each with a remove button. */
+function renderMine(){
+  const keys = Object.keys(favs);
+  $("#tdMineHead").textContent = keys.length ? "Following · " + keys.length : "Following";
+  $("#tdMine").innerHTML = keys.length ? keys.map(k => { const f = favs[k];
+    return `<span class="favchip" style="border-color:color-mix(in srgb,${lgColor(f.lg)} 30%,#3A3220)">${f.logo ? `<img src="${esc(f.logo)}" alt="">` : ""}${esc(f.name)}<button type="button" data-unfav="${esc(k)}" aria-label="Stop following ${esc(f.name)}">×</button></span>`; }).join("")
+    : `<p class="fav-empty">No teams yet. Add some below.</p>`;
 }
 /* Team picker: every team in a league from ESPN's team list (cached for a week). */
 let tdLeague = "nfl";
@@ -2239,6 +2297,7 @@ $("#addTeams").addEventListener("click", () => {
   const mine = Object.values(favs)[0];
   if (mine && LG[mine.lg]) tdLeague = mine.lg;
   $("#tdSearch").value = "";
+  renderMine();
   $("#teamDlg").showModal(); renderPicker();
 });
 $("#tdLeagues").addEventListener("click", e => { const b = e.target.closest("[data-tdlg]"); if (!b) return; tdLeague = b.dataset.tdlg; renderPicker(); });
@@ -2251,7 +2310,7 @@ $("#tdList").addEventListener("click", e => {
   if (favs[k]) delete favs[k]; else favs[k] = {name: t.name, abbr: t.abbr, logo: t.logo, lg: tdLeague};
   favs = {...favs}; store.set("pulse.favs", favs);
   const on = !!favs[k]; b.setAttribute("aria-pressed", on); b.querySelector(".st").textContent = on ? "★" : "☆";
-  render();
+  renderMine(); render();
 });
 $("#upsetOnly").addEventListener("click", () => { upsetOnly = !upsetOnly; store.set("pulse.upsetOnly", upsetOnly); render(); });
 $("#spoilBtn").addEventListener("click", () => { spoil = !spoil; store.set("pulse.noSpoilers", spoil); syncHeader(); render(); if (openId){ const g = games.find(x => x.id === openId); if (g) fillGame(g); } });
@@ -2280,7 +2339,7 @@ document.addEventListener("click", e => {
   const fb = e.target.closest("[data-fav]");
   if (fb && openId){ const g = games.find(x => x.id === openId); if (g){ toggleFav(g, fb.dataset.fav); render(); fillGame(g); } return; }
   const uf = e.target.closest("[data-unfav]");
-  if (uf){ delete favs[uf.dataset.unfav]; favs = {...favs}; store.set("pulse.favs", favs); render(); return; }
+  if (uf){ delete favs[uf.dataset.unfav]; favs = {...favs}; store.set("pulse.favs", favs); render(); if ($("#teamDlg").open){ renderMine(); renderPicker(); } return; }
   const mb = e.target.closest("[data-more]");
   if (mb){ const k = mb.dataset.more; showAll.has(k) ? showAll.delete(k) : showAll.add(k); render(); return; }
   const g = e.target.closest(".gc");
