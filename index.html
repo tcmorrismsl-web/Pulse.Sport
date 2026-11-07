@@ -125,19 +125,15 @@ header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background
 #alertBtn[aria-pressed="false"]{color:#5A606B}
 #spoilBtn[aria-pressed="true"] .hl::after{content:" hidden"}
 
-/* Best right now */
-.best{margin-top:18px}
-.best-card{position:relative;display:grid;grid-template-columns:1fr auto;gap:10px 14px;align-items:center;background:linear-gradient(135deg,color-mix(in srgb,var(--zc) 16%,#13181E),#13181E 60%);border:1px solid color-mix(in srgb,var(--zc) 45%,#262A35);border-radius:16px;padding:14px 16px;cursor:pointer}
-.best-card .eyebrow{color:var(--zc);grid-column:1/-1;margin:0;display:flex;align-items:center;gap:7px}
-.best-card .eyebrow i{width:7px;height:7px;border-radius:50%;background:var(--must);animation:beat 1.6s infinite}
-.best-card .bm{min-width:0}
-.best-card .bt{font-family:var(--display);font-weight:600;font-size:22px;line-height:1.15;color:#F2F5FA;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.best-card .bs{color:#88909A;font-size:13px;margin-top:3px}
-.best-card .bs b{color:var(--text);font-weight:600}
-.best-card .bn{font-family:var(--display);font-weight:600;font-size:44px;line-height:1;color:var(--zc);text-align:right}
-.best-card .bn small{display:block;font-family:var(--body);font-size:10px;font-weight:500;color:#6E7681;text-align:center}
-.best-card .ba{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
-.best-card .ba .btn{font-size:12px}
+/* Best right now: the standard game tile with a small label */
+.best{margin-top:16px}
+.best-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 2px 6px}
+.best-lbl{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--zc)}
+.best-lbl i{width:6px;height:6px;border-radius:50%;background:var(--must);animation:beat 1.6s infinite}
+.best-watch{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;text-decoration:none;color:#fff;background:var(--wc);border-radius:6px;padding:4px 9px;white-space:nowrap}
+.best-watch:hover{filter:brightness(.92)}
+.best-tile{max-width:560px}
+.best-tile .gc{border-color:color-mix(in srgb,var(--zc) 40%,#262A35)}
 
 /* Alert toasts */
 .toasts{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 10px);z-index:50;display:grid;gap:8px;width:min(440px,calc(100vw - 24px));pointer-events:none}
@@ -414,7 +410,7 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
   </section>
 </main>
 
-<p class="build" id="build">Pulse build 2026-11-06c · clearer scores in banner and alerts</p>
+<p class="build" id="build">Pulse build 2026-11-06d · compact Best right now</p>
 
 <dialog id="howDlg" aria-labelledby="howTitle">
   <div class="m-in how">
@@ -1577,14 +1573,9 @@ function renderBest(live){
   if (!g || g.score < 40){ sec.hidden = true; sec.innerHTML = ""; return; }
   sec.hidden = false;
   const w = watchOptions(g)[0];
-  const cr = crunchLevel(g);
-  sec.innerHTML = `<div class="best-card" data-open="${esc(g.id)}" style="--zc:${colorAt(g.score)}" role="button" tabindex="0" aria-label="Best game right now: ${esc(g.away.name)} at ${esc(g.home.name)}, excitement ${g.score}">
-    <p class="eyebrow"><i aria-hidden="true"></i>Best right now · ${esc(LG[g.lg].label)}</p>
-    <div class="bm"><div class="bt">${esc(g.away.name)} at ${esc(g.home.name)}</div>
-      <div class="bs">${spoil ? "" : scoreLine(g) + " · "}<span${cr ? ` style="color:${CRUNCH[cr]};font-weight:600"` : ""}>${esc(statusText(g))}</span>${(g.tags || []).filter(t => !(spoil && t[2]))[0] ? " · " + esc(g.tags.filter(t => !(spoil && t[2]))[0][0]) : ""}</div></div>
-    <div class="bn">${g.score}<small>${esc(zone(g.score).name)}</small></div>
-    <div class="ba">${w ? `<a class="btn watch" style="background:${w.w.color};border-color:${w.w.color};color:${w.w.text}" href="${w.w.url(g)}" target="_blank" rel="noopener">▶ Watch${w.w.id === "yttv" ? " · " + esc(w.nets[0]) : " on " + esc(w.w.label)}</a>` : ""}<button class="btn" type="button" data-open="${esc(g.id)}">Details</button></div>
-  </div>`;
+  // Same tile as the live cards below the chart, with a small label and a compact Watch link.
+  sec.innerHTML = `<div class="best-head" style="--zc:${colorAt(g.score)}"><span class="best-lbl"><i aria-hidden="true"></i>Best right now</span>${w ? `<a class="best-watch" style="--wc:${w.w.color}" href="${w.w.url(g)}" target="_blank" rel="noopener">▶ Watch${w.w.id === "yttv" ? " · " + esc(w.nets[0]) : " on " + esc(w.w.label)}</a>` : ""}</div>
+    <div class="best-tile">${card(g)}</div>`;
 }
 function renderFavs(){
   const keys = Object.keys(favs);
@@ -2182,7 +2173,6 @@ $("#spoilBtn").addEventListener("click", () => { spoil = !spoil; store.set("puls
 $("#alertBtn").addEventListener("click", () => { alertsOn = !alertsOn; store.set("pulse.alerts", alertsOn); syncHeader(); });
 function syncHeader(){ $("#spoilBtn").setAttribute("aria-pressed", spoil); $("#alertBtn").setAttribute("aria-pressed", alertsOn); }
 syncHeader();
-$("#bestSec").addEventListener("keydown", e => { if ((e.key === "Enter" || e.key === " ") && e.target.matches(".best-card")){ e.preventDefault(); openGame(e.target.dataset.open); } });
 $("#liveOnly").addEventListener("click", () => { liveOnly = !liveOnly; store.set("pulse.liveOnly", liveOnly); render(); });
 $("#selAll").addEventListener("click", () => { selected = new Set(LEAGUES.map(l => l.id)); store.set("pulse.leagues", [...selected]); render(); });
 $("#selNone").addEventListener("click", () => { selected = new Set(); store.set("pulse.leagues", []); render(); });
