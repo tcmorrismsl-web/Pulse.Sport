@@ -106,6 +106,17 @@ header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background
 .favchip button{background:none;border:0;color:#8A7A55;font-size:13px;line-height:1;cursor:pointer;padding:0 2px}
 .favchip button:hover{color:#F5C451}
 .fav-empty{color:var(--muted);font-size:13px;margin:0 0 6px}
+/* Live / Upcoming / Final tabs */
+.tabs{margin-top:18px;display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;background:#11161C;border:1px solid #1F242C;border-radius:12px}
+.tab{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:38px;border:0;border-radius:9px;background:transparent;color:#88909A;font-family:var(--label);font-weight:700;font-size:15px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+.tab:hover{color:#C9CED6}
+.tab[aria-selected="true"]{background:#232A33;color:#F4F7FD;box-shadow:inset 0 0 0 1px #313945}
+.tab .n{font-family:var(--body);font-weight:600;font-size:12px;letter-spacing:0;color:#6C7480;font-variant-numeric:tabular-nums}
+.tab[aria-selected="true"] .n{color:#AEB5BF}
+.tab .ld{width:7px;height:7px;border-radius:50%;background:#4A2A30}
+.tab .ld.on{background:var(--must);animation:beat 1.6s infinite}
+.tab-empty{color:var(--muted);font-size:14px;margin:22px 2px 0;padding:18px;border:1px dashed var(--line);border-radius:10px}
+.tab-empty[hidden]{display:none}
 .ball{display:inline-block;font-size:.72em;line-height:1;margin-left:5px;vertical-align:.08em;font-style:normal}
 /* My teams: a compact row under Filters, scores only */
 .favrow{margin-top:12px;padding-top:12px;border-top:1px solid #1C2128;display:grid;gap:10px}
@@ -417,7 +428,7 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
       <button class="link" id="selNone" type="button">Clear</button></span>
     </div>
     <div class="fbody" id="fBody" hidden>
-    <div class="chips"><button class="chip live-chip" id="liveOnly" type="button" aria-pressed="false"><span class="ld"></span>Live<span class="n" id="liveN"></span></button><button class="chip ups-chip" id="upsetOnly" type="button" aria-pressed="false">Upsets<span class="n" id="upsetN"></span></button><span class="chip-sep" aria-hidden="true"></span><div class="chips" id="chips" style="display:contents"></div></div>
+    <div class="chips"><button class="chip ups-chip" id="upsetOnly" type="button" aria-pressed="false">Upsets<span class="n" id="upsetN"></span></button><span class="chip-sep" aria-hidden="true"></span><div class="chips" id="chips" style="display:contents"></div></div>
     <div class="subf" id="subf" hidden></div>
     </div>
   </div>
@@ -429,6 +440,13 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
     </div>
     <div class="fscores" id="favGrid"></div>
   </section>
+
+  <div class="tabs" id="tabs" role="tablist" aria-label="Games">
+    <button class="tab" type="button" role="tab" data-tab="live" aria-selected="true"><span class="ld" aria-hidden="true"></span>Live<span class="n" id="tabLiveN"></span></button>
+    <button class="tab" type="button" role="tab" data-tab="up" aria-selected="false">Upcoming<span class="n" id="tabUpN"></span></button>
+    <button class="tab" type="button" role="tab" data-tab="fin" aria-selected="false">Final<span class="n" id="tabFinN"></span></button>
+  </div>
+  <p class="tab-empty" id="tabEmpty" hidden></p>
 
   <div class="banner" id="sampleBanner" hidden><b>Sample games.</b> ESPN's scoreboards can't be reached from here, so these made-up games show how Pulse rates them. Hosted on its own site (Netlify, for example), Pulse shows live scores.</div>
 
@@ -469,7 +487,7 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
   </section>
 </main>
 
-<p class="build" id="build">Pulse build 2026-11-06h · ESPN and FOX open the live stream</p>
+<p class="build" id="build">Pulse build 2026-11-09 · Live / Upcoming / Final tabs</p>
 
 <dialog id="howDlg" aria-labelledby="howTitle">
   <div class="m-in how">
@@ -607,7 +625,8 @@ const store = {
 };
 
 let selected = new Set(store.get("pulse.leagues", LEAGUES.map(l => l.id)));
-let liveOnly = !!store.get("pulse.liveOnly", false);
+const liveOnly = false;                            // replaced by the Live / Upcoming / Final tabs
+let tab = ["live", "up", "fin"].includes(store.get("pulse.tab", "live")) ? store.get("pulse.tab", "live") : "live";
 let spoil = !!store.get("pulse.noSpoilers", false);      // spoiler-free: hide scores everywhere
 let alertsOn = store.get("pulse.alerts", true) !== false;
 let upsetOnly = !!store.get("pulse.upsetOnly", false);
@@ -1348,6 +1367,32 @@ async function pastWeekFinals(){
   } catch {}
   return list;
 }
+/* Upcoming: ESPN's basketball, hockey and baseball scoreboards only list today's games (football
+   lists the whole week, soccer is already fetched day by day), so the next six days are fetched
+   one request per league per day, cached for 30 minutes. */
+let upLoading = false, lastAhead = [];   // keeps the week ahead on screen between refreshes
+async function upcomingDays(){
+  const days = Array.from({length: 6}, (_, i) => ymd(new Date(Date.now() + (i + 1) * 864e5)));
+  const lgs = LEAGUES.filter(L => L.kind !== "soccer" && !/^football\//.test(L.path) && watched(L));
+  const jobs = [];
+  for (const L of lgs) for (const d of days) jobs.push((async () => {
+    const key = L.id + ":" + d, c = dayCache[key];
+    let events;
+    if (c && Date.now() - c.ts < 1800e3) events = c.events;
+    else {
+      const j = await getJSON("https://site.api.espn.com/apis/site/v2/sports/" + L.path + "/scoreboard?dates=" + d + (L.q ? "&" + L.q : ""));
+      events = j.events || [];
+      dayCache[key] = {ts: Date.now(), events};
+    }
+    return finishLeague(L, events).filter(g => g.state === "pre");
+  })());
+  const out = await Promise.allSettled(jobs);
+  return (lastAhead = out.flatMap(r => r.status === "fulfilled" ? r.value : []));
+}
+function withAhead(list){
+  const seen = new Set(list.map(g => g.id)), now = ymd(new Date());
+  return list.concat(lastAhead.filter(g => !seen.has(g.id) && ymd(new Date(g.date)) > now && watched(LG[g.lg])));
+}
 function finishLeague(L, events){
   let list = events.map(ev => parseEvent(ev, L)).filter(Boolean);
   if (L.id === "epl") for (const g of list){ eplTeams.add(String(g.home.id)); eplTeams.add(String(g.away.id)); }
@@ -1432,7 +1477,7 @@ async function doRefresh(){
   } else {
     usingSample = false;
     hadReal = true;
-    ingest(next);                     // first paint: today's games are on screen now
+    ingest(withAhead(next));          // first paint: today's games are on screen now
     const anyLive = next.some(g => g.state === "in");
     const failed = CHIPS.filter(l => !leagueState[l.id].ok && !leagueState[l.id].stale).length;
     setConn(anyLive ? "live" : "ok", anyLive ? "Live" : "Connected", Date.now(), failed ? failed + " league" + (failed > 1 ? "s" : "") + " unavailable" : "");
@@ -1447,20 +1492,24 @@ async function doRefresh(){
 async function fillIn(next, results){
   const soccer = LEAGUES.filter(L => L.kind === "soccer" && (watched(L) || L.id === "epl" || L.parent === "epl"));
   const needWeek = finRange === "week";
-  if (!soccer.length && !needWeek) return;
-  const [full, week] = await Promise.all([
+  upLoading = true;
+  const [full, week, ahead] = await Promise.all([
     Promise.allSettled(soccer.map(L => fetchLeague(L))),
     needWeek ? pastWeekFinals().catch(() => []) : Promise.resolve([]),
+    upcomingDays().catch(() => []),
   ]);
+  upLoading = false;
   const replaced = new Set();
   let merged = next.slice();
   soccer.forEach((L, i) => { if (full[i].status === "fulfilled"){ replaced.add(L.id); merged = merged.filter(g => g.lg !== L.id).concat(full[i].value); } });
   const seen = new Set(merged.map(g => g.id));
   for (const g of week) if (!seen.has(g.id)){ seen.add(g.id); merged.push(g); }
-  if (merged.length === next.length && !week.length && !replaced.size) return;
+  const aheadIds = new Set(ahead.map(g => g.id));
+  merged = merged.filter(g => !aheadIds.has(g.id)).concat(ahead);
+  if (merged.length === next.length && !week.length && !ahead.length && !replaced.size){ render(); return; }
   for (const L of soccer) if (replaced.has(L.id)){ const v = merged.filter(g => g.lg === L.id); leagueState[L.id] = {ok:true, n:v.length, live:v.filter(g => g.state === "in").length}; }
   ingest(merged);
-  saveSnapshot(merged.filter(g => !week.includes(g)));
+  saveSnapshot(merged.filter(g => !week.includes(g) && !ahead.includes(g)));
 }
 
 function ingest(list, restore){
@@ -1827,7 +1876,7 @@ function render(){
   $("#liveGrid").innerHTML = live.map(card).join("");
   $("#liveLabel").hidden = !live.length;
   $("#liveEmpty").hidden = !!live.length;
-  $("#liveEmpty").textContent = (!selected.size ? "Pick a league above to see games." : upsetOnly ? "No live upsets right now." : "No live games in your leagues right now.") + (finAll.length || upList.length || todayList.length ? (liveOnly ? " Turn off the Live filter to see upcoming and finished games." : " Finished and upcoming games are below.") : "");
+  $("#liveEmpty").textContent = (!selected.size ? "Pick a league above to see games." : upsetOnly ? "No live upsets right now." : "No live games in your leagues right now.") + (upList.length || todayList.length ? " Check the Upcoming tab for what's next." : finAll.length ? " Check the Final tab for results." : "");
   $("#liveCount").textContent = live.length ? live.length + " game" + (live.length > 1 ? "s" : "") + " live" : "";
   liveList = live;
   renderFavs();
@@ -1875,13 +1924,24 @@ function render(){
     }).join("") : "";
   }
   // Live-only filter: hide everything that isn't being played right now.
-  $("#liveOnly").setAttribute("aria-pressed", liveOnly);
-  $("#liveN").textContent = live.length;
-  if (liveOnly) for (const sel of ["#todaySec", "#upSec", "#finSec"]) $(sel).hidden = true;
   $("#upsetOnly").setAttribute("aria-pressed", upsetOnly);
   $("#upsetN").textContent = inLeagues.filter(isUpset).length;
+  // Tabs: one group of games at a time.
+  const upN = todayList.length + upList.length;
+  $("#tabLiveN").textContent = live.length || "";
+  $("#tabUpN").textContent = upN || "";
+  $("#tabFinN").textContent = fin.length || "";
+  $("#tabs .ld").classList.toggle("on", live.length > 0);
+  for (const b of document.querySelectorAll("#tabs [data-tab]")) b.setAttribute("aria-selected", b.dataset.tab === tab);
+  if (tab !== "live") $("#liveSec").hidden = true;
+  if (tab !== "up"){ $("#todaySec").hidden = true; $("#upSec").hidden = true; }
+  if (tab !== "fin") $("#finSec").hidden = true;
+  const emptyMsg = !selected.size ? "Pick a league in Filters to see games."
+    : tab === "up" && !upN ? (upLoading ? "Loading the week ahead…" : "No upcoming games in your leagues in the next 7 days.")
+    : tab === "fin" && !fin.length && finRange === "week" && !weekLoading ? "No finished games in your leagues in the last 7 days." : "";
+  $("#tabEmpty").hidden = !emptyMsg; $("#tabEmpty").textContent = emptyMsg;
   $("#finCount").textContent = weekLoading && finRange === "week" ? "loading the week…" : fin.length ? fin.length + (fin.length === 1 ? " game" : " games") + (finRange === "week" ? " · last 7 days" : "") : (finRange === "today" ? "none yet today" : "");
-  if (finRange === "today" && !fin.length && finAll.length && !liveOnly) $("#finSec").hidden = false;
+  if (tab === "fin" && selected.size) $("#finSec").hidden = false;
 
   // Keep an open game modal current.
   if ($("#gameDlg").open && openId){ const g = games.find(x => x.id === openId); if (g) fillGame(g); }
@@ -2325,7 +2385,12 @@ $("#spoilBtn").addEventListener("click", () => { spoil = !spoil; store.set("puls
 $("#alertBtn").addEventListener("click", () => { alertsOn = !alertsOn; store.set("pulse.alerts", alertsOn); syncHeader(); });
 function syncHeader(){ $("#spoilBtn").setAttribute("aria-pressed", spoil); $("#alertBtn").setAttribute("aria-pressed", alertsOn); }
 syncHeader();
-$("#liveOnly").addEventListener("click", () => { liveOnly = !liveOnly; store.set("pulse.liveOnly", liveOnly); render(); });
+$("#tabs").addEventListener("click", e => {
+  const b = e.target.closest("[data-tab]"); if (!b || b.dataset.tab === tab) return;
+  tab = b.dataset.tab; store.set("pulse.tab", tab); render();
+  const top = $("#tabs").getBoundingClientRect().top, hdr = $("header.top").getBoundingClientRect().bottom;
+  if (top < hdr) window.scrollBy({top: top - hdr - 8});
+});
 $("#fTog").addEventListener("click", () => { filtersOpen = !filtersOpen; store.set("pulse.filtersOpen", filtersOpen); renderFilterSum(); });
 $("#selAll").addEventListener("click", () => { selected = new Set(LEAGUES.map(l => l.id)); store.set("pulse.leagues", [...selected]); render(); });
 $("#selNone").addEventListener("click", () => { selected = new Set(); store.set("pulse.leagues", []); render(); });
