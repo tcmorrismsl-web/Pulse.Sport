@@ -489,7 +489,7 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
   </section>
 </main>
 
-<p class="build" id="build">Pulse build 2026-11-12b · My teams grouped by day</p>
+<p class="build" id="build">Pulse build 2026-11-12c · New league colors</p>
 
 <dialog id="howDlg" aria-labelledby="howTitle">
   <div class="m-in how">
@@ -576,8 +576,8 @@ const LEAGUES = [
 const CHIPS = LEAGUES.filter(l => !l.parent);
 /* One color per league (cups share the Premier League's). Checked for contrast on the dark cards
    and for separation between neighbouring leagues, including for colour-blind viewers. */
-const LEAGUE_COLOR = {nfl:"#38BDF8", ncaaf:"#22D3EE", mlb:"#34D399", nba:"#4F8DFF", wnba:"#F472B6",
-  ncaam:"#C084FC", nhl:"#F87171", mls:"#A3E635", epl:"#A3E635", ucl:"#A3E635"};   // all soccer shares lime
+const LEAGUE_COLOR = {nfl:"#38BDF8", ncaaf:"#22D3EE", mlb:"#FACC15", nba:"#FB923C", wnba:"#F472B6",
+  ncaam:"#F87171", nhl:"#C084FC", mls:"#A3E635", epl:"#A3E635", ucl:"#A3E635"};   // all soccer shares lime
 const lgColor = id => LEAGUE_COLOR[LG_PARENT_OF(id)] || "#88909A";
 function LG_PARENT_OF(id){ const l = LEAGUES.find(x => x.id === id); return l && l.parent || id; }              // what the league buttons show
 const chipOf = id => (LG_PARENT[id] || id);
