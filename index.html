@@ -141,6 +141,8 @@ header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background
 .fsr .st{font-size:11.5px;color:#88909A;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fsr .st.live{color:#F08A90;font-weight:600}
 .fsr .ex{font-family:var(--display);font-weight:800;font-size:22px;line-height:1;text-align:right;color:var(--zc);font-variant-numeric:tabular-nums}
+.fday{grid-column:1 / -1;margin:8px 0 0 2px;font-family:var(--label);font-weight:700;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#8C95A1}
+.fday:first-child{margin-top:0}
 .td-mine-wrap{display:grid;gap:8px}
 .td-mine{display:flex;flex-wrap:wrap;gap:6px}
 .td-mine .fav-empty{margin:0}
@@ -487,7 +489,7 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
   </section>
 </main>
 
-<p class="build" id="build">Pulse build 2026-11-12 · My teams follows the tabs</p>
+<p class="build" id="build">Pulse build 2026-11-12b · My teams grouped by day</p>
 
 <dialog id="howDlg" aria-labelledby="howTitle">
   <div class="m-in how">
@@ -1750,8 +1752,14 @@ function scoreLine(g){
 function favStatus(g){
   if (g.state !== "pre") return statusText(g);
   const d = new Date(g.date); if (isNaN(d)) return g.detail;
-  const time = g.tbd ? "TBD" : d.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});
-  return d.toDateString() === new Date().toDateString() ? time : d.toLocaleDateString([], {weekday:"short"}) + " " + time;
+  return g.tbd ? "TBD" : d.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});   // the day is in the header above
+}
+function favDayLabel(d){
+  if (isNaN(d)) return "Date TBD";
+  const day = x => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diff = Math.round((day(d) - day(new Date())) / 864e5);
+  const date = d.toLocaleDateString([], {weekday:"long", month:"short", day:"numeric"});
+  return diff === 0 ? "Today · " + date : diff === 1 ? "Tomorrow · " + date : diff === -1 ? "Yesterday · " + date : date;
 }
 function favRow(g){
   const showScore = g.state !== "pre" && !spoil;
@@ -1791,7 +1799,14 @@ function renderFavs(){
   $("#favCount").textContent = keys.length + " team" + (keys.length > 1 ? "s" : "") + " · " + list.length + " " + word;
   $("#addTeams").textContent = "Edit"; $("#addTeams").hidden = !open;
   $("#favGrid").hidden = !open;
-  $("#favGrid").innerHTML = !open ? "" : list.length ? list.map(favRow).join("") : `<p class="fav-empty">${none}</p>`;
+  // Grouped by day (Upcoming and Final); Live games are all happening now, so no day headers there.
+  let html = "", lastDay = "";
+  for (const g of list){
+    const d = new Date(g.date), k = isNaN(d) ? "" : d.toDateString();
+    if (tab !== "live" && k !== lastDay){ lastDay = k; html += `<h4 class="fday">${esc(favDayLabel(d))}</h4>`; }
+    html += favRow(g);
+  }
+  $("#favGrid").innerHTML = !open ? "" : list.length ? html : `<p class="fav-empty">${none}</p>`;
 }
 /* Edit my teams: the followed list, each with a remove button. */
 function renderMine(){
