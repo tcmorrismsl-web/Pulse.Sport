@@ -501,7 +501,7 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
   </section>
 </main>
 
-<p class="build" id="build">Pulse build 2026-11-12f · Cleaner tab bar</p>
+<p class="build" id="build">Pulse build 2026-11-12g · Filters and My teams start closed</p>
 
 <dialog id="howDlg" aria-labelledby="howTitle">
   <div class="m-in how">
@@ -665,6 +665,7 @@ let games = [];                                    // parsed + rated
 let leagueState = {};                             // id -> {ok, n, live}
 let usingSample = false;
 let openState = store.get("pulse.open", {});       // section/day key -> open?
+delete openState.favs;                              // My teams always starts closed when the app opens
 const showAll = new Set();                        // lists expanded past the first few cards
 const CAP = 6;
 const isOpen = (key, def) => key in openState ? openState[key] : def;
@@ -1725,7 +1726,7 @@ function renderSubf(){
   }).join("");
 }
 /* Filters fold away by default; the summary says what's on so nothing is hidden by surprise. */
-let filtersOpen = !!store.get("pulse.filtersOpen", false);
+let filtersOpen = false;                            // Filters always start closed when the app opens
 function renderFilterSum(){
   const on = CHIPS.filter(l => selected.has(l.id)).map(l => l.label);
   const parts = [on.length === CHIPS.length ? "All leagues" : !on.length ? "No leagues" : on.length <= 3 ? on.join(", ") : on.slice(0, 2).join(", ") + " +" + (on.length - 2)];
@@ -1787,7 +1788,7 @@ function favRow(g){
 function renderFavs(){
   const keys = Object.keys(favs);
   $("#favSec").hidden = false;
-  const open = isOpen("favs", true);
+  const open = isOpen("favs", false);
   const tog = $('[data-tog="favs"]');
   if (!keys.length){
     $("#favCount").textContent = "none yet";
@@ -2422,7 +2423,7 @@ $("#tabs").addEventListener("click", e => {
   const top = $("#tabTop").getBoundingClientRect().top, hdr = $("header.top").getBoundingClientRect().bottom;
   if (top < hdr) window.scrollBy({top: top - hdr});
 });
-$("#fTog").addEventListener("click", () => { filtersOpen = !filtersOpen; store.set("pulse.filtersOpen", filtersOpen); renderFilterSum(); });
+$("#fTog").addEventListener("click", () => { filtersOpen = !filtersOpen; renderFilterSum(); });
 $("#selAll").addEventListener("click", () => { selected = new Set(LEAGUES.map(l => l.id)); store.set("pulse.leagues", [...selected]); render(); });
 $("#selNone").addEventListener("click", () => { selected = new Set(); store.set("pulse.leagues", []); render(); });
 $("#refreshBtn").addEventListener("click", refresh);
@@ -2452,9 +2453,15 @@ document.addEventListener("click", e => {
   if (e.target.tagName === "DIALOG") e.target.close();   // click on backdrop
 });
 $("#gameDlg").addEventListener("close", () => { openId = null; });
+let hiddenAt = 0;
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "hidden") clearTimeout(timer);
-  else refresh();
+  if (document.visibilityState === "hidden"){ clearTimeout(timer); hiddenAt = Date.now(); return; }
+  // Coming back after 5+ minutes counts as opening the app: Filters and My teams start closed again.
+  if (hiddenAt && Date.now() - hiddenAt > 5 * 60e3){
+    filtersOpen = false; delete openState.favs; store.set("pulse.open", openState);
+    renderFilterSum(); render();
+  }
+  refresh();
 });
 
 renderChips();
