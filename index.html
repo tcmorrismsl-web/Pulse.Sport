@@ -39,7 +39,7 @@
 }
 *{box-sizing:border-box}
 html,body{background:var(--ground);touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}
-body{color:var(--text);font-family:var(--body);font-size:15px;line-height:1.45;margin:0;padding-inline:20px;padding-block:0 calc(96px + env(safe-area-inset-bottom,0px));-webkit-font-smoothing:antialiased}
+body{color:var(--text);font-family:var(--body);font-size:15px;line-height:1.45;margin:0;padding-inline:20px;padding-block:0 calc(88px + env(safe-area-inset-bottom,0px));-webkit-font-smoothing:antialiased}
 button{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .wrap{max-width:1180px;margin:0 auto}
@@ -108,11 +108,13 @@ header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background
 .fav-empty{color:var(--muted);font-size:13px;margin:0 0 6px}
 /* Live / Upcoming / Final tabs */
 /* Locked to the bottom of the screen so the tabs are always in reach, however far you scroll. */
-.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:6;padding:8px 16px calc(8px + env(safe-area-inset-bottom,0px));background:color-mix(in srgb,var(--ground) 90%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--line)}
-.tabs{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;background:#11161C;border:1px solid #1F242C;border-radius:12px}
-.tab{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:38px;border:0;border-radius:9px;background:transparent;color:#88909A;font-family:var(--label);font-weight:700;font-size:15px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:6;padding:2px 14px max(8px,calc(env(safe-area-inset-bottom,0px) - 12px));background:var(--ground)}
+/* No line, no box: the page fades out into the bar. */
+.tabbar::before{content:"";position:absolute;left:0;right:0;bottom:100%;height:30px;pointer-events:none;background:linear-gradient(to bottom,transparent,var(--ground))}
+.tabs{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.tab{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:44px;border:0;border-radius:12px;background:transparent;color:#7C8590;font-family:var(--label);font-weight:700;font-size:15px;-webkit-tap-highlight-color:transparent;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
 .tab:hover{color:#C9CED6}
-.tab[aria-selected="true"]{background:#232A33;color:#F4F7FD;box-shadow:inset 0 0 0 1px #313945}
+.tab[aria-selected="true"]{background:#1A2029;color:#F4F7FD}
 .tab .n{font-family:var(--body);font-weight:600;font-size:12px;letter-spacing:0;color:#6C7480;font-variant-numeric:tabular-nums}
 .tab[aria-selected="true"] .n{color:#AEB5BF}
 .tab .ld{width:7px;height:7px;border-radius:50%;background:#4A2A30}
@@ -499,7 +501,7 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
   </section>
 </main>
 
-<p class="build" id="build">Pulse build 2026-11-12e · Tabs locked to the bottom</p>
+<p class="build" id="build">Pulse build 2026-11-12f · Cleaner tab bar</p>
 
 <dialog id="howDlg" aria-labelledby="howTitle">
   <div class="m-in how">
