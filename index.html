@@ -487,7 +487,7 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
   </section>
 </main>
 
-<p class="build" id="build">Pulse build 2026-11-09 · Live / Upcoming / Final tabs</p>
+<p class="build" id="build">Pulse build 2026-11-12 · My teams follows the tabs</p>
 
 <dialog id="howDlg" aria-labelledby="howTitle">
   <div class="m-in how">
@@ -1779,16 +1779,19 @@ function renderFavs(){
   const mine = games.filter(isFavGame);
   const t = g => new Date(g.date).getTime() || 0;
   const today = new Date().toDateString();
-  const list = [
-    ...mine.filter(g => g.state === "in").sort((a, b) => b.score - a.score),
-    ...mine.filter(g => g.state === "post" && new Date(g.date).toDateString() === today).sort((a, b) => b.score - a.score),
-    ...mine.filter(g => g.state === "pre" && t(g) <= Date.now() + 7 * 864e5).sort((a, b) => t(a) - t(b)),
-  ];
+  // Follows the Live / Upcoming / Final tab: only that tab's games for your teams.
+  const list = tab === "live" ? mine.filter(g => g.state === "in").sort((a, b) => b.score - a.score)
+    : tab === "up" ? mine.filter(g => g.state === "pre" && t(g) <= Date.now() + 7 * 864e5).sort((a, b) => t(a) - t(b))
+    : mine.filter(g => g.state === "post" && (finRange === "week" ? t(g) >= Date.now() - 7 * 864e5 : new Date(g.date).toDateString() === today)).sort((a, b) => t(b) - t(a));
+  const word = tab === "live" ? "live" : tab === "up" ? "upcoming" : "final";
+  const none = tab === "live" ? "None of your teams are playing right now."
+    : tab === "up" ? "No upcoming games for your teams in the next 7 days."
+    : finRange === "week" ? "No finished games for your teams in the last 7 days." : "No finished games for your teams today.";
   tog.setAttribute("aria-expanded", open);
-  $("#favCount").textContent = keys.length + " team" + (keys.length > 1 ? "s" : "") + " · " + (list.length ? list.length + " game" + (list.length > 1 ? "s" : "") : "no games");
+  $("#favCount").textContent = keys.length + " team" + (keys.length > 1 ? "s" : "") + " · " + list.length + " " + word;
   $("#addTeams").textContent = "Edit"; $("#addTeams").hidden = !open;
   $("#favGrid").hidden = !open;
-  $("#favGrid").innerHTML = !open ? "" : list.length ? list.map(favRow).join("") : `<p class="fav-empty">No games for your teams in the next 7 days.</p>`;
+  $("#favGrid").innerHTML = !open ? "" : list.length ? list.map(favRow).join("") : `<p class="fav-empty">${none}</p>`;
 }
 /* Edit my teams: the followed list, each with a remove button. */
 function renderMine(){
