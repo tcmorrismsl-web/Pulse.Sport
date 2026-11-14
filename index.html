@@ -464,6 +464,8 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
 
   <div class="banner" id="sampleBanner" hidden><b>Sample games.</b> ESPN's scoreboards can't be reached from here, so these made-up games show how Pulse rates them. Hosted on its own site (Netlify, for example), Pulse shows live scores.</div>
 
+  <div class="banner" id="offlineBanner" hidden><b>Can't load scores right now.</b> <span id="offlineWhy"></span> Pulse keeps retrying on its own every few seconds; you can also tap Refresh.</div>
+
   <div id="loading" class="loading">Loading scoreboards…</div>
 
 
@@ -501,7 +503,7 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
   </section>
 </main>
 
-<p class="build" id="build">Pulse build 2026-11-12g · Filters and My teams start closed</p>
+<p class="build" id="build">Pulse build 2026-11-13 · No sample games on the real app</p>
 
 <dialog id="howDlg" aria-labelledby="howTitle">
   <div class="m-in how">
@@ -1416,6 +1418,18 @@ function finishLeague(L, events){
 }
 
 let hadReal = false;                 // real ESPN data has loaded at least once
+let noData = false;                  // nothing has loaded yet and ESPN can't be reached
+/* Made-up sample games are only for previews that can never reach ESPN (a file opened directly, or
+   localhost). The real app never shows them: it says it can't load scores and keeps retrying. */
+const SAMPLE_OK = location.protocol === "file:" || /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname) || /[?&]sample\b/.test(location.search);
+function failReason(results){
+  if (navigator.onLine === false) return "Your phone looks offline.";
+  const msgs = results.filter(r => r.status === "rejected").map(r => String(r.reason && (r.reason.message || r.reason.name) || r.reason));
+  const http = msgs.map(m => /HTTP (\d+)/.exec(m)).filter(Boolean).map(m => m[1]);
+  if (http.length) return "ESPN's scoreboards answered with an error (code " + [...new Set(http)].join(", ") + ").";
+  if (msgs.some(m => /abort/i.test(m))) return "ESPN's scoreboards took too long to answer.";
+  return "ESPN's scoreboards couldn't be reached" + (msgs[0] ? " (" + msgs[0] + ")." : ".");
+}
 const lastFetch = {};                 // league id -> time of last successful fetch
 /* A league is "watched" if its chip is on or one of your teams plays in it. Others refresh every 5 minutes. */
 function watched(L){
@@ -1480,6 +1494,14 @@ async function doRefresh(){
     render();
     return;
   }
+  if (okCount === 0 && !SAMPLE_OK){
+    // First load and ESPN can't be reached: say so plainly (no made-up games) and retry quickly.
+    noData = true; usingSample = false; games = [];
+    $("#offlineWhy").textContent = failReason(results);
+    setConn("warn", "Can't reach ESPN", 0, "retrying", true);
+    render();
+    return;
+  }
   if (okCount === 0){
     // No network path to ESPN at all (for example a sandboxed preview): show labeled sample games.
     usingSample = true;
@@ -1491,7 +1513,7 @@ async function doRefresh(){
     setConn("warn", "Sample data");
   } else {
     usingSample = false;
-    hadReal = true;
+    hadReal = true; noData = false;
     ingest(withAhead(next));          // first paint: today's games are on screen now
     const anyLive = next.some(g => g.state === "in");
     const failed = CHIPS.filter(l => !leagueState[l.id].ok && !leagueState[l.id].stale).length;
@@ -1603,7 +1625,7 @@ function schedule(){
   const offline = conn.offline;
   const anyLive = games.some(g => g.state === "in");
   // Sample mode and offline retry every minute / 30 s so real data comes back on its own.
-  timer = setTimeout(refresh, usingSample ? 60000 : offline ? 30000 : anyLive ? 20000 : 300000);
+  timer = setTimeout(refresh, usingSample ? 60000 : noData ? 6000 : offline ? 15000 : anyLive ? 20000 : 300000);
 }
 
 /* Connection line: a label plus a live "updated Xs ago" that turns amber when data is stale. */
@@ -1881,6 +1903,15 @@ async function renderPicker(){
 }
 function render(){
   $("#loading").hidden = true;
+  $("#offlineBanner").hidden = !noData;
+  if (noData){           // nothing to show yet: just the message, no empty lists
+    renderChips(); renderFilterSum(); renderFavs();
+    const nFav = Object.keys(favs).length; if (nFav) $("#favCount").textContent = nFav + " team" + (nFav > 1 ? "s" : "");
+    for (const sel of ["#liveSec", "#todaySec", "#upSec", "#finSec", "#tabEmpty"]) $(sel).hidden = true;
+    for (const id of ["tabLiveN", "tabUpN", "tabFinN"]) $("#" + id).textContent = "";
+    for (const b of document.querySelectorAll("#tabs [data-tab]")) b.setAttribute("aria-selected", b.dataset.tab === tab);
+    return;
+  }
   renderChips();
   const inLeagues = games.filter(g => selected.has(chipOf(g.lg)));
   const p4ok = g => !p4Only[g.lg] || isP4Game(g);
