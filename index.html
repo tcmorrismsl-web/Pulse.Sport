@@ -503,7 +503,7 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
   </section>
 </main>
 
-<p class="build" id="build">Pulse build 2026-11-13 · No sample games on the real app</p>
+<p class="build" id="build">Pulse build 2026-11-13b · Lighter loading</p>
 
 <dialog id="howDlg" aria-labelledby="howTitle">
   <div class="m-in how">
@@ -1305,6 +1305,15 @@ async function getJSON(url){
   try { const r = await fetch(url, {signal: ctl.signal}); if (!r.ok) throw new Error("HTTP " + r.status); return await r.json(); }
   finally { clearTimeout(to); }
 }
+/* The extra days (rest of the week, past-week finals, other soccer days) go through a queue,
+   at most 4 requests at a time, so opening the app never fires a burst of 150+ requests at ESPN. */
+let slowActive = 0; const slowWait = [];
+async function slowJSON(url){
+  if (slowActive >= 4) await new Promise(r => slowWait.push(r));
+  slowActive++;
+  try { return await getJSON(url); }
+  finally { slowActive--; const n = slowWait.shift(); if (n) n(); }
+}
 async function soccerEvents(L, quick){
   const base = "https://site.api.espn.com/apis/site/v2/sports/" + L.path + "/scoreboard";
   const today = ymd(new Date());
@@ -1320,7 +1329,7 @@ async function soccerEvents(L, quick){
       return st === "in" || (st === "pre" && t < Date.now() + 10 * 60e3 && t > Date.now() - 3 * 3600e3);
     });
     if (c && d !== today && !hot && Date.now() - c.ts < 600e3) return c.events;
-    const j = await getJSON(base + "?dates=" + d + (L.q ? "&" + L.q : ""));
+    const j = await (d === today ? getJSON : slowJSON)(base + "?dates=" + d + (L.q ? "&" + L.q : ""));
     dayCache[key] = {ts: Date.now(), events: j.events || []};
     return dayCache[key].events;
   }));
@@ -1370,7 +1379,7 @@ async function pastWeekFinals(){
     let events;
     if (c && Date.now() - c.ts < 3600e3) events = c.events;
     else {
-      const j = await getJSON("https://site.api.espn.com/apis/site/v2/sports/" + L.path + "/scoreboard?dates=" + d + (L.q ? "&" + L.q : ""));
+      const j = await slowJSON("https://site.api.espn.com/apis/site/v2/sports/" + L.path + "/scoreboard?dates=" + d + (L.q ? "&" + L.q : ""));
       events = j.events || [];
       dayCache[key] = {ts: Date.now(), events};
     }
@@ -1387,7 +1396,7 @@ async function pastWeekFinals(){
 /* Upcoming: ESPN's basketball, hockey and baseball scoreboards only list today's games (football
    lists the whole week, soccer is already fetched day by day), so the next six days are fetched
    one request per league per day, cached for 30 minutes. */
-let upLoading = false, lastAhead = [];   // keeps the week ahead on screen between refreshes
+let upLoading = false, lastAhead = [], lastWeek = [];   // keeps the week ahead on screen between refreshes
 async function upcomingDays(){
   const days = Array.from({length: 6}, (_, i) => ymd(new Date(Date.now() + (i + 1) * 864e5)));
   const lgs = LEAGUES.filter(L => L.kind !== "soccer" && !/^football\//.test(L.path) && watched(L));
@@ -1397,7 +1406,7 @@ async function upcomingDays(){
     let events;
     if (c && Date.now() - c.ts < 1800e3) events = c.events;
     else {
-      const j = await getJSON("https://site.api.espn.com/apis/site/v2/sports/" + L.path + "/scoreboard?dates=" + d + (L.q ? "&" + L.q : ""));
+      const j = await slowJSON("https://site.api.espn.com/apis/site/v2/sports/" + L.path + "/scoreboard?dates=" + d + (L.q ? "&" + L.q : ""));
       events = j.events || [];
       dayCache[key] = {ts: Date.now(), events};
     }
@@ -1528,17 +1537,19 @@ async function doRefresh(){
    This week, the past six days of finals. Re-renders once when it's done. */
 async function fillIn(next, results){
   const soccer = LEAGUES.filter(L => L.kind === "soccer" && (watched(L) || L.id === "epl" || L.parent === "epl"));
-  const needWeek = finRange === "week";
-  upLoading = true;
+  // Only load what the open tab needs: Live needs nothing extra, Upcoming needs the week ahead,
+  // Final (on This week) needs the past week. Anything loaded earlier stays on screen.
+  const wantUp = tab === "up", wantWeek = tab === "fin" && finRange === "week";
+  if (wantUp) upLoading = true;
   const [full, week, ahead] = await Promise.all([
-    Promise.allSettled(soccer.map(L => fetchLeague(L))),
-    needWeek ? pastWeekFinals().catch(() => []) : Promise.resolve([]),
-    upcomingDays().catch(() => []),
+    tab === "live" ? Promise.resolve([]) : Promise.allSettled(soccer.map(L => fetchLeague(L))),
+    wantWeek ? pastWeekFinals().then(v => (lastWeek = v)).catch(() => lastWeek) : Promise.resolve(finRange === "week" ? lastWeek : []),
+    wantUp ? upcomingDays().catch(() => lastAhead) : Promise.resolve(lastAhead),
   ]);
   upLoading = false;
   const replaced = new Set();
   let merged = next.slice();
-  soccer.forEach((L, i) => { if (full[i].status === "fulfilled"){ replaced.add(L.id); merged = merged.filter(g => g.lg !== L.id).concat(full[i].value); } });
+  soccer.forEach((L, i) => { if (full[i] && full[i].status === "fulfilled"){ replaced.add(L.id); merged = merged.filter(g => g.lg !== L.id).concat(full[i].value); } });
   const seen = new Set(merged.map(g => g.id));
   for (const g of week) if (!seen.has(g.id)){ seen.add(g.id); merged.push(g); }
   const aheadIds = new Set(ahead.map(g => g.id));
@@ -1959,7 +1970,7 @@ function render(){
     return `<div class="day"><h3 class="day-h"><button class="tog" type="button" data-tog="${esc(key)}" aria-expanded="${open}"><span class="chev" aria-hidden="true"></span>${esc(label)}<span class="count">${list.length} game${list.length > 1 ? "s" : ""}</span>${open ? "" : `<span class="peek">Top: ${esc(top.away.name)} at ${esc(top.home.name)} · ${top.score}</span>`}</button></h3>
       ${open ? `<div class="grid">${capped(list, key)}</div>` : ""}</div>`;
   }).join("") : "";
-  $("#upCount").textContent = upList.length ? days.length + " day" + (days.length > 1 ? "s" : "") + " · " + upList.length + " games" : "";
+  $("#upCount").textContent = upLoading ? "loading the week…" : upList.length ? days.length + " day" + (days.length > 1 ? "s" : "") + " · " + upList.length + " games" : "";
 
   // Final: Today (flat, hottest first) or This week (grouped by day, newest first).
   const fin = finRange === "today" ? finAll.filter(g => dayKey(g) === todayKey)
@@ -2453,7 +2464,28 @@ $("#tabs").addEventListener("click", e => {
   // If you'd scrolled down the old tab's list, jump to the start of the new one.
   const top = $("#tabTop").getBoundingClientRect().top, hdr = $("header.top").getBoundingClientRect().bottom;
   if (top < hdr) window.scrollBy({top: top - hdr});
+  loadTabExtras();
 });
+/* Upcoming and Final load their extra days the first time you open them (then they're cached). */
+let extrasBusy = false;
+async function loadTabExtras(){
+  if (tab === "live" || usingSample || noData || !hadReal || extrasBusy) return;
+  extrasBusy = true;
+  const forTab = tab;
+  try {
+    if (tab === "up") upLoading = true;
+    if (tab === "fin" && finRange === "week") weekLoading = true;
+    render();
+    while (busy) await new Promise(r => setTimeout(r, 200));   // let a running refresh finish first
+    busy = true;
+    try { await fillIn(games.slice()); } finally { busy = false; }
+  } catch (e) { console.error(e); }
+  finally {
+    upLoading = false; weekLoading = false; extrasBusy = false;
+    render(); schedule();
+    if (tab !== forTab) loadTabExtras();     // switched again while loading
+  }
+}
 $("#fTog").addEventListener("click", () => { filtersOpen = !filtersOpen; renderFilterSum(); });
 $("#selAll").addEventListener("click", () => { selected = new Set(LEAGUES.map(l => l.id)); store.set("pulse.leagues", [...selected]); render(); });
 $("#selNone").addEventListener("click", () => { selected = new Set(); store.set("pulse.leagues", []); render(); });
