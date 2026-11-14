@@ -16,7 +16,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+<!-- Fonts load in the background: the page shows right away in system fonts and swaps when they arrive. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
 <style>
 /* Pulse commits to one look: a night-game scoreboard. Colors are set explicitly so it reads the same on any host. */
 :root{
@@ -503,7 +504,7 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
   </section>
 </main>
 
-<p class="build" id="build">Pulse build 2026-11-13b · Lighter loading</p>
+<p class="build" id="build">Pulse build 2026-11-14 · Opens from the saved copy</p>
 
 <dialog id="howDlg" aria-labelledby="howTitle">
   <div class="m-in how">
@@ -1344,6 +1345,14 @@ let eplTeams = new Set(store.get("pulse.eplTeams", {ids:[]}).ids);
 async function ensureEplTeams(){
   const saved = store.get("pulse.eplTeams", {ids:[], ts:0});
   if (saved.ids.length && Date.now() - saved.ts < 864e5) return;
+  if (saved.ids.length){          // have a list already: refresh it in the background, never wait for it
+    if (!eplRefreshing){ eplRefreshing = true; fetchEplTeams().finally(() => { eplRefreshing = false; }); }
+    return;
+  }
+  await fetchEplTeams();
+}
+let eplRefreshing = false;
+async function fetchEplTeams(){
   for (const u of ["teams/epl.json", "https://raw.githubusercontent.com/tcmorrismsl-web/Pulse.Sport/main/teams/epl.json"]){
     try {
       const j = await getJSON(u);
@@ -2530,7 +2539,18 @@ document.addEventListener("visibilitychange", () => {
 renderChips();
 restoreSnapshot();          // show the last update instantly, then fetch fresh data
 refresh();
-if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")){
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+  // The app opens from the copy saved on the phone. When a newer version has just been saved,
+  // switch to it right away (not while a pop-up is open, and at most once a minute).
+  navigator.serviceWorker.addEventListener("message", e => {
+    if (!e.data || e.data.type !== "pulse-updated" || document.querySelector("dialog[open]")) return;
+    let last = 0; try { last = +sessionStorage.getItem("pulse.reloadAt") || 0; } catch {}
+    if (Date.now() - last < 60e3) return;
+    try { sessionStorage.setItem("pulse.reloadAt", String(Date.now())); } catch {}
+    location.reload();
+  });
+}
 })();
 </script>
 <script>
