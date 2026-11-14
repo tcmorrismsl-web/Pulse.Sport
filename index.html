@@ -335,6 +335,7 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
 .m-head{display:flex;align-items:flex-start;gap:12px}
 .m-head h2{font-family:var(--display);font-weight:800;font-size:28px;line-height:1.05;text-transform:uppercase;margin:0;text-wrap:balance}
 .m-head .sub{color:var(--muted);font-size:14px;margin-top:4px}
+.m-head .sub .moved{color:var(--heat);font-weight:600}
 .m-head > div:first-child{flex:1;min-width:0}
 .m-side{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex:none}
 .m-side .x{margin-left:0}
@@ -504,7 +505,7 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
   </section>
 </main>
 
-<p class="build" id="build">Pulse build 2026-11-14 · Opens from the saved copy</p>
+<p class="build" id="build">Pulse build 2026-11-14b · Start-time changes</p>
 
 <dialog id="howDlg" aria-labelledby="howTitle">
   <div class="m-in how">
@@ -819,19 +820,24 @@ function parseEvent(ev, L){
   const st = comp.status || ev.status || {};
   const type = st.type || {};
   const name = type.name || "";
-  if (/POSTPONED|CANCELED|CANCELLED|SUSPENDED|FORFEIT|DELAYED/.test(name) && type.state !== "in") return null;
+  // Postponed and delayed games stay on the board (moved to their new day when ESPN sets one);
+  // cancelled, forfeited and suspended games are dropped.
+  if (/CANCELED|CANCELLED|SUSPENDED|FORFEIT/.test(name) && type.state !== "in") return null;
+  const postponed = /POSTPONED/.test(name) && type.state !== "in";
+  const delayed = /DELAYED/.test(name) && type.state !== "in";
   const home = parseTeam(hc), away = parseTeam(ac);
   const link = (ev.links || []).find(l => (l.rel || []).includes("summary")) || (ev.links || [])[0];
   const note = (comp.notes && comp.notes[0] && comp.notes[0].headline) || "";
   return {
     id: L.id + ":" + ev.id, espnId: ev.id, lg: L.id,
-    state: type.state || "pre", statusName: name,
+    state: postponed || delayed ? "pre" : (type.state || "pre"), statusName: name, postponed, delayed,
     detail: type.shortDetail || type.detail || "",
     period: st.period || 0, clock: typeof st.clock === "number" ? st.clock : null, displayClock: st.displayClock || "",
     outs: comp.situation && typeof comp.situation.outs === "number" ? comp.situation.outs : null,
     sit: parseSit(comp, home, away, L),
-    date: ev.date, home, away,
-    tbd: type.state === "pre" && (comp.timeValid === false || ev.timeValid === false || /\bTBD\b/i.test(type.shortDetail || type.detail || "")),
+    // The game's own start time (competition level) wins over the event's, in case one lags a reschedule.
+    date: comp.date || comp.startDate || ev.date, home, away,
+    tbd: (type.state === "pre" || postponed || delayed) && (comp.timeValid === false || ev.timeValid === false || /\bTBD\b/i.test(type.shortDetail || type.detail || "")),
     odds: parseOdds(comp, home, away, L),
     note, conf: !!comp.conferenceCompetition,
     group: comp.groups && (comp.groups.shortName || comp.groups.name) || "",
@@ -1303,7 +1309,7 @@ function ymd(d){ return d.getFullYear() + String(d.getMonth() + 1).padStart(2, "
 const dayCache = {};   // "league:yyyymmdd" -> {ts, events}
 async function getJSON(url){
   const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 9000);
-  try { const r = await fetch(url, {signal: ctl.signal}); if (!r.ok) throw new Error("HTTP " + r.status); return await r.json(); }
+  try { const r = await fetch(url, {signal: ctl.signal, cache: "no-cache"}); if (!r.ok) throw new Error("HTTP " + r.status); return await r.json(); }
   finally { clearTimeout(to); }
 }
 /* The extra days (rest of the week, past-week finals, other soccer days) go through a queue,
@@ -1368,7 +1374,7 @@ async function fetchLeague(L, quick){
   const ctl = new AbortController();
   const to = setTimeout(() => ctl.abort(), 9000);
   try {
-    const r = await fetch(url, {signal: ctl.signal});
+    const r = await fetch(url, {signal: ctl.signal, cache: "no-cache"});
     if (!r.ok) throw new Error("HTTP " + r.status);
     const j = await r.json();
     return finishLeague(L, j.events || []);
@@ -1413,7 +1419,7 @@ async function upcomingDays(){
   for (const L of lgs) for (const d of days) jobs.push((async () => {
     const key = L.id + ":" + d, c = dayCache[key];
     let events;
-    if (c && Date.now() - c.ts < 1800e3) events = c.events;
+    if (c && Date.now() - c.ts < 600e3) events = c.events;
     else {
       const j = await slowJSON("https://site.api.espn.com/apis/site/v2/sports/" + L.path + "/scoreboard?dates=" + d + (L.q ? "&" + L.q : ""));
       events = j.events || [];
@@ -1569,6 +1575,31 @@ async function fillIn(next, results){
   saveSnapshot(merged.filter(g => !week.includes(g) && !ahead.includes(g)));
 }
 
+/* Start-time watch: Pulse remembers the first start time it saw for each upcoming game. When ESPN's
+   time later moves by 15+ minutes (or to another day), the game gets a "New time" tag and the
+   pop-up says what it was. Kept for 10 days. */
+let startSeen = store.get("pulse.times", null);
+if (!startSeen){
+  startSeen = {};
+  const snap = store.get("pulse.snap", null);          // seed from the last saved update
+  if (snap && Array.isArray(snap.games)) for (const g of snap.games) if (g.state === "pre" && g.date) startSeen[g.id] = {d: g.date, tbd: !!g.tbd, at: Date.now()};
+}
+function watchStart(g){
+  if (g.state !== "pre" || !g.date){ g.moved = null; return; }
+  const was = startSeen[g.id];
+  if (!was || was.tbd){ startSeen[g.id] = {d: g.date, tbd: !!g.tbd, at: Date.now()}; g.moved = null; return; }
+  const diff = Math.abs(Date.parse(g.date) - Date.parse(was.d));
+  g.moved = !g.tbd && diff >= 15 * 60e3 ? was.d : null;
+}
+function saveStarts(){
+  const cutoff = Date.now() - 10 * 864e5;
+  for (const k in startSeen) if (!startSeen[k] || startSeen[k].at < cutoff) delete startSeen[k];
+  store.set("pulse.times", startSeen);
+}
+function fmtStart(iso){
+  const d = new Date(iso); if (isNaN(d)) return "";
+  return d.toLocaleDateString([], {weekday:"short"}) + " " + d.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});
+}
 function ingest(list, restore){
   // restore = showing the saved last update on launch: rate it, but don't record it as new history.
   for (const g of list){
@@ -1576,7 +1607,9 @@ function ingest(list, restore){
     const {p} = progress(g, L);
     if (!restore) recordSnapshot(g, p);
     g.p = p; if (!restore) noteScoring(g);
+    watchStart(g);
   }
+  saveStarts();
   pruneHistory();
   games = list.map(rate);
   if (!restore){
@@ -1667,6 +1700,7 @@ setInterval(() => { if (conn.at) paintConn(); }, 1000);
 /* ---------- Rendering ---------- */
 function statusText(g){
   if (g.state === "pre"){
+    if (g.postponed && !g.moved) return "Postponed";
     const d = new Date(g.date);
     if (isNaN(d)) return g.detail;
     const today = new Date();
@@ -1722,6 +1756,9 @@ function cardTeam(t, g, other){
 /* Matchup flags shown on every card: rivalry, ranked matchup, postseason, upset, overtime. */
 function cardFlags(g){
   const f = [];
+  if (g.state === "pre" && g.postponed) f.push(["Postponed", "red"]);
+  else if (g.state === "pre" && g.delayed) f.push(["Delayed", "red"]);
+  if (g.state === "pre" && g.moved) f.push(["New time · was " + fmtStart(g.moved), "hot"]);
   if (g.ot && g.state !== "pre") f.push(["OT", "red"]);
   if (g.parts && g.parts.upset > 4 && !spoil) f.push([g.state === "post" ? "Upset" : "Upset watch", "hot"]);
   if (g.home.rank && g.away.rank) f.push(["Top 25 matchup", "hot"]);
@@ -1807,6 +1844,7 @@ function scoreLine(g){
 function favStatus(g){
   if (g.state !== "pre") return statusText(g);
   const d = new Date(g.date); if (isNaN(d)) return g.detail;
+  if (g.postponed && !g.moved) return "Postponed";
   return g.tbd ? "TBD" : d.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});   // the day is in the header above
 }
 function favDayLabel(d){
@@ -2313,7 +2351,7 @@ function fillGame(g){
   $("#gameBody").innerHTML = `
     <div class="m-head">
       <div><h2 id="gTitle">${esc(g.away.name)} at ${esc(g.home.name)}</h2>
-      <div class="sub">${esc(L.label)} · ${esc(statusText(g))}${g.note ? " · " + esc(g.note) : ""}</div></div>
+      <div class="sub">${esc(L.label)} · ${esc(statusText(g))}${g.note ? " · " + esc(g.note) : ""}${g.moved ? `<br><span class="moved">Start time changed · was ${esc(fmtStart(g.moved))}</span>` : ""}</div></div>
       <div class="m-side">
         <button class="x" type="button" data-close aria-label="Close">✕</button>
         <div class="m-acts">
