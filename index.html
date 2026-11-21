@@ -505,7 +505,7 @@ dialog::backdrop{background:rgba(4,6,9,.72)}
   </section>
 </main>
 
-<p class="build" id="build">Pulse build 2026-11-14b · Start-time changes</p>
+<p class="build" id="build">Pulse build 2026-11-21 · Live chart on a game-clock axis</p>
 
 <dialog id="howDlg" aria-labelledby="howTitle">
   <div class="m-in how">
@@ -2124,21 +2124,21 @@ function valueAt(pts, p){
 }
 const scoreText = (g, pt) => spoil ? `${esc(g.away.abbr || g.away.name)} at ${esc(g.home.abbr || g.home.name)}` : `${esc(g.away.abbr || g.away.name)} ${pt.a}–${pt.h} ${esc(g.home.abbr || g.home.name)}`;
 
-/* Live overview: every live game's excitement against the clock on the wall. */
+/* Live overview: every live game's excitement against how far through the game it is.
+   One fixed axis for every sport (start, quarter, half, three-quarters, end), so each game's dot
+   shows where it is in its game compared with the others. */
 let liveList = [], liveGeo = null;
 const timeFmt = t => new Date(t).toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});
 function drawLive(){
   const el = $("#liveChart");
-  const series = liveList.map(g => ({g, pts: timeCurve(g)})).filter(x => x.pts && x.pts.length > 1);
+  const series = liveList.map(g => ({g, pts: g.curve && g.curve.slice()})).filter(x => x.pts && x.pts.length > 1);
   el.hidden = !series.length;
   if (!series.length){ el.innerHTML = ""; liveGeo = null; return; }
   // Fixed drawing size, scaled to fit, so type stays small and crisp like the original.
   const W = 800, H = 400, pad = {l:24, r:132, t:5, b:22};
   const F = "Inter, -apple-system, system-ui, sans-serif";
-  const now = Date.now();
-  const t0 = Math.min(...series.map(x => x.pts[0].t)), t1 = now;
   const pw = W - pad.l - pad.r;
-  const x = t => pad.l + (t - t0) / Math.max(1, t1 - t0) * pw;
+  const x = p => pad.l + clamp(p, 0, 1) * pw;
   const y = v => pad.t + (1 - v / 100) * (H - pad.t - pad.b);
   const bands = [[80,100,"#FF4757",.065,"#B0484F","Must-watch"],[60,80,"#F0A030",.06,"#A87A3E","Heating up"],[40,60,"#2FBF71",.07,"#3E8E66","Competitive"],[0,40,"#4C8DFF",.045,"#3F5F8E","Quiet"]];
   let svg = `<defs><linearGradient id="lcGrad" gradientUnits="userSpaceOnUse" x1="0" y1="${y(0)}" x2="0" y2="${y(100)}">${SCALE.map(([v, c]) => `<stop offset="${v / 100}" stop-color="rgb(${c.join(",")})"/>`).join("")}</linearGradient></defs>`;
@@ -2146,20 +2146,19 @@ function drawLive(){
   svg += [20, 40, 60, 80].map(v => `<line x1="${pad.l}" x2="${pad.l + pw}" y1="${y(v)}" y2="${y(v)}" stroke="#FFFFFF" stroke-opacity=".035"/>`).join("");
   svg += bands.map(([a, b, , , lc, n]) => `<text x="${pad.l + 7}" y="${y(b) + 12}" fill="${lc}" font-size="7.5" font-weight="500" font-family="${F}">${n}</text>`).join("");
   svg += [0, 20, 40, 60, 80, 100].map(v => `<text x="${pad.l - 6}" y="${y(v) + 2.8}" fill="#4E535A" font-size="8" text-anchor="end" font-family="${F}">${v}</text>`).join("");
+  // Fixed game-clock grid: quarters dashed, halftime solid.
+  svg += [.25, .5, .75].map(p => `<line x1="${x(p)}" x2="${x(p)}" y1="${pad.t}" y2="${y(0)}" stroke="#FFFFFF" stroke-opacity="${p === .5 ? .12 : .06}"${p === .5 ? "" : ' stroke-dasharray="3 3"'}/>`).join("");
   svg += `<line x1="${pad.l + pw}" x2="${pad.l + pw}" y1="${pad.t}" y2="${y(0)}" stroke="#2A323B"/>`;
-  const nT = 5;
-  for (let i = 0; i <= nT; i++){
-    const t = t0 + (t1 - t0) * i / nT;
-    svg += `<text x="${x(t)}" y="${H - 7}" fill="#4E535A" font-size="8" text-anchor="${i === 0 ? "start" : i === nT ? "end" : "middle"}" font-family="${F}">${timeFmt(t)}</text>`;
-  }
+  svg += [[0,"Start","start"],[.25,"Q1","middle"],[.5,"Half","middle"],[.75,"Q3","middle"],[1,"End","end"]]
+    .map(([p, t, a]) => `<text x="${x(p)}" y="${H - 7}" fill="${p === .5 ? "#7A828C" : "#4E535A"}" font-size="8" font-weight="${p === .5 ? 600 : 400}" text-anchor="${a}" font-family="${F}">${t}</text>`).join("");
   // Lines, coolest first so the hottest sit on top; a small dot at every reading.
   for (const {g, pts} of [...series].reverse()){
-    const d = pts.map((p, i) => (i ? "L" : "M") + x(p.t).toFixed(1) + " " + y(p.s).toFixed(1)).join(" ");
+    const d = pts.map((p, i) => (i ? "L" : "M") + x(p.p).toFixed(1) + " " + y(p.s).toFixed(1)).join(" ");
     const last = pts[pts.length - 1];
-    const dots = pts.slice(0, -1).filter((p, i, a) => i === 0 || Math.abs(x(p.t) - x(a[i - 1].t)) > 2.5 || Math.abs(p.s - a[i - 1].s) > 1.5)
-      .map(p => `<circle cx="${x(p.t).toFixed(1)}" cy="${y(p.s).toFixed(1)}" r="1.5" fill="${colorAt(p.s)}"/>`).join("");
+    const dots = pts.slice(0, -1).filter((p, i, a) => i === 0 || Math.abs(x(p.p) - x(a[i - 1].p)) > 2.5 || Math.abs(p.s - a[i - 1].s) > 1.5)
+      .map(p => `<circle cx="${x(p.p).toFixed(1)}" cy="${y(p.s).toFixed(1)}" r="1.5" fill="${colorAt(p.s)}"/>`).join("");
     svg += `<g class="ser" data-id="${esc(g.id)}"><path d="${d}" fill="none" stroke="url(#lcGrad)" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>${dots}
-      <circle cx="${x(last.t)}" cy="${y(last.s)}" r="3" fill="${colorAt(last.s)}"/></g>`;
+      <circle cx="${x(last.p)}" cy="${y(last.s)}" r="3" fill="${colorAt(last.s)}"/></g>`;
   }
   // End labels for every game, nudged apart.
   // Keep every label inside the chart: spread them apart, then fit them between the top and bottom edges.
@@ -2177,8 +2176,8 @@ function drawLive(){
     const ab = t => esc(t.abbr || t.name);
     return `<text class="lbl" data-id="${esc(g.id)}" x="${lx}" y="${ly + 3}" font-size="8.6" font-family="${F}"><tspan fill="${colorAt(g.score)}" font-weight="700">${g.score}</tspan><tspan fill="#E8EBF0" font-weight="600"> ${spoil ? ab(g.away) + " @ " + ab(g.home) : ab(g.away) + " " + g.away.score + "-" + g.home.score + " " + ab(g.home)}</tspan><tspan fill="${CRUNCH[crunchLevel(g)] || "#6E7681"}" font-size="7.4"${crunchLevel(g) ? ' font-weight="700"' : ""}> ${esc(statusText(g))}</tspan></text>`;
   }).join("");
-  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Excitement of each live game over time">${svg}</svg>`;
-  liveGeo = {x, y, t0, t1, series, svg: el.querySelector("svg")};
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Excitement of each live game by how far through the game it is">${svg}</svg>`;
+  liveGeo = {x, y, pw, series, svg: el.querySelector("svg")};
 }
 function nearestLive(e){
   if (!liveGeo) return null;
@@ -2187,7 +2186,7 @@ function nearestLive(e){
   for (const S of series){
     const c = S.pts;
     for (let i = 1; i < c.length; i++){
-      const d = segDist(pt.sx, pt.sy, x(c[i - 1].t), y(c[i - 1].s), x(c[i].t), y(c[i].s));
+      const d = segDist(pt.sx, pt.sy, x(c[i - 1].p), y(c[i - 1].s), x(c[i].p), y(c[i].s));
       if (d < bd){ bd = d; best = S; }
     }
   }
@@ -2198,14 +2197,14 @@ function hoverLive(e){
   el.classList.toggle("hl", !!hit);
   el.querySelectorAll(".on").forEach(n => n.classList.remove("on"));
   if (!hit){ tip.hidden = true; return; }
-  const {S: {g, pts}, pt} = hit, {x, t0, t1} = liveGeo;
+  const {S: {g, pts}, pt} = hit, {x, pw} = liveGeo;
   el.querySelectorAll(`[data-id="${CSS.escape(g.id)}"]`).forEach(n => n.classList.add("on"));
-  const tm = t0 + (pt.sx - x(t0)) / (x(t1) - x(t0)) * (t1 - t0);
-  let at = pts[0]; for (const q of pts) if (Math.abs(q.t - tm) < Math.abs(at.t - tm)) at = q;
+  const pm = (pt.sx - x(0)) / pw;
+  let at = pts[0]; for (const q of pts) if (Math.abs(q.p - pm) < Math.abs(at.p - pm)) at = q;
   const now = pts[pts.length - 1];
   tip.innerHTML = `<b>${esc(g.away.name)} at ${esc(g.home.name)}</b> <span class="tm">· ${esc(LG[g.lg].label)}</span><br>
     <span class="tz" style="background:${colorAt(g.score)}"></span>Now <b>${g.score}</b> <span class="tm">· ${esc(statusText(g))} · ${scoreText(g, now)}</span>
-    ${at !== now ? `<br><span class="tm">${timeFmt(at.t)}: ${at.s} · ${scoreText(g, at)}</span>` : ""}`;
+    ${at !== now ? `<br><span class="tm">${esc(momentLabel(g, at.p))}: ${at.s} · ${scoreText(g, at)}</span>` : ""}`;
   const box = $(".lc-card"), r = box.getBoundingClientRect();
   placeTip(tip, box, pt.px - r.left, pt.py - r.top);
 }
